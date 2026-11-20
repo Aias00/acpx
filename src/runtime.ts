@@ -21,10 +21,11 @@ import type {
 import { AcpRuntimeError } from "./runtime/public/errors.js";
 import { createFileSessionStore } from "./runtime/public/file-session-store.js";
 import { decodeAcpxRuntimeHandleState, writeHandleState } from "./runtime/public/handle-state.js";
+import { createMemorySessionStore } from "./runtime/public/memory-session-store.js";
 import { normalizeRuntimeDetails } from "./runtime/public/probe.js";
 import { deriveAgentFromSessionKey, type AcpxHandleState } from "./runtime/public/shared.js";
 
-export { DEFAULT_AGENT_NAME, createFileSessionStore };
+export { DEFAULT_AGENT_NAME, createFileSessionStore, createMemorySessionStore };
 export type {
   AcpCapabilityEvidence,
   AcpEvidenceState,
@@ -41,6 +42,7 @@ export type { InspectAgentModelsOptions } from "./runtime/public/probe.js";
 export type {
   AcpAgentInspection,
   AcpAgentInspectionOptions,
+  AcpAgentRegistryOptions,
   AcpInspectableAgentRegistry,
 } from "./agent-registry.js";
 export { AcpRuntimeError, isAcpRuntimeError } from "./runtime/public/errors.js";
@@ -131,6 +133,20 @@ function validateRuntimeTimeoutMs(timeoutMs: number | undefined): void {
   }
 }
 
+function validateRuntimeMaxMessageBytes(maxMessageBytes: number | undefined): void {
+  if (
+    maxMessageBytes !== undefined &&
+    (typeof maxMessageBytes !== "number" ||
+      !Number.isSafeInteger(maxMessageBytes) ||
+      maxMessageBytes < 0)
+  ) {
+    throw new AcpRuntimeError(
+      "ACP_INVALID_RUNTIME_OPTION",
+      "maxMessageBytes must be a non-negative safe integer; zero is unlimited.",
+    );
+  }
+}
+
 export class AcpxRuntime implements AcpxRuntimeLike {
   private healthy = false;
   private shutdownTask?: Promise<void>;
@@ -150,6 +166,7 @@ export class AcpxRuntime implements AcpxRuntimeLike {
     },
   ) {
     validateRuntimeTimeoutMs(options.timeoutMs);
+    validateRuntimeMaxMessageBytes(options.maxMessageBytes);
     if (
       options.agentProcessEnv ||
       options.agentProcessEnvAllow !== undefined ||

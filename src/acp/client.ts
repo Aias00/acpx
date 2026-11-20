@@ -132,7 +132,7 @@ import {
 import {
   AcpMessageLimitError,
   createNdJsonMessageStream,
-  readMaxAcpMessageBytes,
+  resolveMaxAcpMessageBytes,
 } from "./ndjson-stream.js";
 import { observeAcpStream } from "./observed-stream.js";
 import { ProcessDescendants } from "./process-descendants.js";
@@ -432,6 +432,7 @@ export class AcpClient {
   private readonly permissionAbortControllers = new Map<string, AbortController>();
   private closing = false;
   private closeTask?: Promise<void>;
+  private lastCloseTimedOut = false;
   // Bumped by close() so a start() still launching can tell it was abandoned.
   private closeEpoch = 0;
   private agentStartedAt?: string;
@@ -484,6 +485,10 @@ export class AcpClient {
 
   getAgentPid(): number | undefined {
     return this.agent?.pid ?? this.lastKnownPid;
+  }
+
+  didLastCloseTimeOut(): boolean {
+    return this.lastCloseTimedOut;
   }
 
   getPermissionStats(): PermissionStats {
@@ -638,7 +643,8 @@ export class AcpClient {
       return;
     }
     const epoch = await this.waitForPreviousClose();
-    const maxMessageBytes = readMaxAcpMessageBytes();
+    this.lastCloseTimedOut = false;
+    const maxMessageBytes = resolveMaxAcpMessageBytes(this.options.maxMessageBytes);
     const launch = await this.resolveAgentLaunchPlan(epoch, authority);
     this.assertCommandProbeActive(epoch, authority);
     this.logAgentLaunch(launch);
@@ -740,7 +746,9 @@ export class AcpClient {
       this.options.agentCommand,
       this.options.agentArgv,
     );
-    const resolvedBuiltInLaunch = resolveBuiltInAgentLaunch(this.options.agentCommand);
+    const resolvedBuiltInLaunch = resolveBuiltInAgentLaunch(this.options.agentCommand, {
+      allowPackageExecFallback: this.options.allowPackageExecFallback,
+    });
     const spawnCommand = resolvedBuiltInLaunch?.command ?? configuredCommand.command;
     const spawnOptions = buildAgentSpawnOptions(
       this.options.cwd,
@@ -868,11 +876,14 @@ export class AcpClient {
     await this.options.processLifecycle?.onBeforeSpawn?.(launch);
     assertControlAuthority(authority);
 
+    const ownProcessGroup =
+      process.platform !== "win32" && this.options.processGroupCleanup === true;
     let spawnedChild: ChildProcessByStdio<Writable, Readable, Readable>;
     try {
       spawnedChild = spawn(launch.command, [...launch.args], {
         ...plan.spawnOptions,
         windowsVerbatimArguments: prepared.windowsVerbatimArguments,
+        ...(ownProcessGroup ? { detached: true } : {}),
       });
       await waitForSpawn(spawnedChild);
     } catch (error) {
@@ -886,7 +897,7 @@ export class AcpClient {
     }
 
     const child = requireAgentStdio(spawnedChild);
-    this.agentDescendants.set(child, new ProcessDescendants(child));
+    this.agentDescendants.set(child, new ProcessDescendants(child, { ownProcessGroup }));
     const pid = child.pid;
     if (pid === undefined) {
       const spawnError = new AgentSpawnError(
@@ -1894,6 +1905,7 @@ export class AcpClient {
     const descendants = this.agentDescendants.get(child);
     const deadline = performance.now() + AGENT_CLEANUP_BUDGET_MS;
     const stdinCloseGraceMs = resolveAgentCloseAfterStdinEndMs(this.options.agentCommand);
+    let settled = false;
     try {
       if (descendants) {
         await descendants.capture(Math.max(1, deadline - performance.now()));
@@ -1909,15 +1921,38 @@ export class AcpClient {
         AGENT_CLOSE_TERM_GRACE_MS,
         deadline,
       );
-      if (!exited) {
+      if (exited) {
+        settled = true;
+      } else {
         this.log("agent processes did not exit after SIGTERM; forcing SIGKILL");
-        await this.signalAgentAndDescendants(child, "SIGKILL", AGENT_CLOSE_KILL_GRACE_MS, deadline);
+        settled = await this.signalAgentAndDescendants(
+          child,
+          "SIGKILL",
+          AGENT_CLOSE_KILL_GRACE_MS,
+          deadline,
+        );
       }
     } finally {
+      if (this.didCleanupFail(child, descendants, settled)) {
+        this.lastCloseTimedOut = true;
+      }
       descendants?.retire();
       // Stdio must not keep acpx alive after teardown, even if an OS query failed.
       this.detachAgentHandles(child, isChildProcessRunning(child));
     }
+  }
+
+  private didCleanupFail(
+    child: ChildProcess,
+    descendants: ProcessDescendants | undefined,
+    settled: boolean,
+  ): boolean {
+    return (
+      !settled ||
+      isChildProcessRunning(child) ||
+      Boolean(descendants?.hasTrackedProcesses()) ||
+      Boolean(descendants?.hasUnresolvedOwnership())
+    );
   }
 
   private endAgentStdin(child: ChildProcess): void {

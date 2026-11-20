@@ -82,9 +82,13 @@ export class RuntimeTurnAssurance {
       this.evidence.cleanup = pooled ? "retained" : "attempted";
     }
   }
-  cleanupEnd(hasTurn: boolean, pooled: boolean, ok: boolean): void {
-    if (this.evidence && hasTurn && !pooled && ok) {
-      this.evidence.cleanup = "owned_close_settled";
+  cleanupEnd(hasTurn: boolean, pooled: boolean, ok: boolean, timedOut = false): void {
+    if (this.evidence && hasTurn && !pooled) {
+      if (timedOut) {
+        this.evidence.cleanup = "cleanup_timed_out";
+      } else if (ok) {
+        this.evidence.cleanup = "owned_close_settled";
+      }
     }
   }
 }

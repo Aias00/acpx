@@ -510,6 +510,18 @@ export type AcpRuntimeOptions = {
   processLifecycle?: AcpProcessLifecycle;
   onPermissionRequest?: AcpPermissionHandler;
   /**
+   * Maximum inbound ACP NDJSON message size in bytes for owned agent connections.
+   * When omitted, falls back to `ACPX_MAX_ACP_MESSAGE_BYTES` (default 64 MiB).
+   * Zero disables the limit; negative or non-integer values are rejected.
+   */
+  maxMessageBytes?: number;
+  /**
+   * When true on POSIX platforms, spawns owned agent child processes in their own
+   * process group (`detached: true`) and scopes staged cleanup to birth-verified
+   * members of that group. Defaults to false.
+   */
+  processGroupCleanup?: boolean;
+  /**
    * ACP filesystem callback capability for new and reconnected session clients.
    * Omitted defaults to enabled, matching `AcpClientOptions`. Retained clients
    * keep their original capability. Health probes disable filesystem callbacks

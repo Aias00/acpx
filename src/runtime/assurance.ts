@@ -92,7 +92,7 @@ export type AcpTurnAssurance = {
     acknowledged: boolean;
     nativeToolsStopped: "unknown";
   };
-  cleanup: "not_started" | "retained" | "attempted" | "owned_close_settled";
+  cleanup: "not_started" | "retained" | "attempted" | "owned_close_settled" | "cleanup_timed_out";
   failureCategory:
     | "none"
     | "before_dispatch"

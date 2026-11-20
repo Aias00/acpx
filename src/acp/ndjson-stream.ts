@@ -35,6 +35,19 @@ export function readMaxAcpMessageBytes(
   return bytes === 0 ? undefined : bytes;
 }
 
+export function resolveMaxAcpMessageBytes(
+  option?: number,
+  envRaw = process.env.ACPX_MAX_ACP_MESSAGE_BYTES,
+): number | undefined {
+  if (option !== undefined) {
+    if (typeof option !== "number" || !Number.isSafeInteger(option) || option < 0) {
+      throw new Error("maxMessageBytes must be a non-negative safe integer; zero is unlimited");
+    }
+    return option === 0 ? undefined : option;
+  }
+  return readMaxAcpMessageBytes(envRaw);
+}
+
 function countLineBytes(chunk: Uint8Array, retained: number, limit: number): number {
   let start = 0;
   while (start < chunk.length) {

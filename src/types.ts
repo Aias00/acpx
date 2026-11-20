@@ -291,6 +291,12 @@ export type AcpClientOptions = {
   authPolicy?: AuthPolicy;
   fs?: boolean;
   terminal?: boolean;
+  /** Maximum inbound ACP NDJSON message size in bytes; 0 disables the limit. */
+  maxMessageBytes?: number;
+  /** When true on POSIX, spawns agent child in its own process group for birth-verified cleanup. */
+  processGroupCleanup?: boolean;
+  /** When false, disables npx/npm-exec fallback for built-in agent packages. */
+  allowPackageExecFallback?: boolean;
   elicitationModes?: readonly AcpElicitationMode[];
   processLifecycle?: AcpProcessLifecycle;
   processLaunchScope?: AcpProcessLaunchScope;

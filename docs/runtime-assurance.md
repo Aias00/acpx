@@ -34,18 +34,18 @@ assurance is enabled. The versioned receipt includes private caller/backend/RPC
 identities; it is **not sanitized telemetry** and should stay in caller-controlled
 storage. It never contains prompt, thought, raw tool payload, stderr or `_meta`.
 
-| Field                                  | Meaning                                                                                                                |
-| -------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| `delivery: unsent`                     | No prompt transport write was attempted by this turn yet; final unsent is proven before dispatch.                      |
-| `delivery: submitted`                  | Live snapshot: the writable transport accepted this exact prompt. No peer/business acknowledgement is implied.         |
-| `delivery: unknown`                    | A write may be partial, or a dispatched turn ended without a correlated response. Do not automatically replay.         |
-| `delivery: finished`                   | A correlated ACP response arrived. Check the separate turn result, stop reason and independent business evidence.      |
-| `delivery: failed`                     | A correlated ACP RPC error arrived; a later duplicate success cannot replace it.                                       |
-| `transport`                            | `not_dispatched`, `no_response`, `response` or `rpc_error`; no model-text parsing.                                     |
-| `backendOutcome`, `businessValidation` | Both remain `unknown`: this client has no trusted native receipt or independent business verifier.                     |
-| `cancellation`                         | Separates intent, accepted notification write and a `cancelled` response. Native tool termination remains `unknown`.   |
-| `cleanup`                              | `retained`, owned close `attempted`/`owned_close_settled`, or `not_started`. It does not certify native tools stopped. |
-| `failureCategory`                      | Fixed client categories: `none`, `before_dispatch`, `acp_error`, `transport_or_client`, `client_finalization`.         |
+| Field                                  | Meaning                                                                                                                                    |
+| -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| `delivery: unsent`                     | No prompt transport write was attempted by this turn yet; final unsent is proven before dispatch.                                          |
+| `delivery: submitted`                  | Live snapshot: the writable transport accepted this exact prompt. No peer/business acknowledgement is implied.                             |
+| `delivery: unknown`                    | A write may be partial, or a dispatched turn ended without a correlated response. Do not automatically replay.                             |
+| `delivery: finished`                   | A correlated ACP response arrived. Check the separate turn result, stop reason and independent business evidence.                          |
+| `delivery: failed`                     | A correlated ACP RPC error arrived; a later duplicate success cannot replace it.                                                           |
+| `transport`                            | `not_dispatched`, `no_response`, `response` or `rpc_error`; no model-text parsing.                                                         |
+| `backendOutcome`, `businessValidation` | Both remain `unknown`: this client has no trusted native receipt or independent business verifier.                                         |
+| `cancellation`                         | Separates intent, accepted notification write and a `cancelled` response. Native tool termination remains `unknown`.                       |
+| `cleanup`                              | `retained`, owned close `attempted`/`owned_close_settled`/`cleanup_timed_out`, or `not_started`. It does not certify native tools stopped. |
+| `failureCategory`                      | Fixed client categories: `none`, `before_dispatch`, `acp_error`, `transport_or_client`, `client_finalization`.                             |
 
 Ordinary empty v1 `end_turn` still returns `{ status: "completed" }` with its stop
 reason. That describes an ACP turn, not completion of a business task. Model

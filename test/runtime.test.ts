@@ -10,12 +10,14 @@ import {
   createAcpRuntime,
   createAgentRegistry,
   createFileSessionStore,
+  createMemorySessionStore,
   createRuntimeStore,
   decodeAcpxRuntimeHandleState,
   encodeAcpxRuntimeHandleState,
   type AcpRuntimeEvent,
   type AcpSessionRecord,
 } from "../src/runtime.js";
+import { RuntimeTurnAssurance } from "../src/runtime/turn-assurance.js";
 import { withTempHome } from "./runtime-test-helpers.js";
 
 const MOCK_AGENT_PATH = fileURLToPath(new URL("./mock-agent.js", import.meta.url));
@@ -1237,3 +1239,142 @@ for (const turnCount of [0, 1, 2]) {
     assert.equal((await turn.result).status, "completed");
   });
 }
+
+test("createMemorySessionStore isolates snapshots in memory without filesystem I/O", async () => {
+  const store = createMemorySessionStore();
+  assert.equal(await store.load("missing"), undefined);
+  const record = createSessionRecord({ acpxRecordId: "mem-session-1" });
+  await store.save(record);
+  record.acpSessionId = "mutated-after-save";
+  const loaded = await store.load("mem-session-1");
+  assert.ok(loaded);
+  assert.equal(loaded.acpxRecordId, "mem-session-1");
+  assert.equal(loaded.acpSessionId, "sid-1");
+  loaded.acpSessionId = "mutated-after-load";
+  const reloaded = await store.load("mem-session-1");
+  assert.equal(reloaded?.acpSessionId, "sid-1");
+});
+
+test("createAgentRegistry allowPackageExecFallback=false never falls back to npx/uvx", () => {
+  const registry = createAgentRegistry({
+    allowPackageExecFallback: false,
+    resolvePackageRoot: () => undefined,
+    overrides: {
+      custom: ["/usr/local/bin/custom-agent", "--acp"],
+    },
+  });
+  assert.deepEqual(registry.resolve("codex"), ["codex-acp"]);
+  assert.deepEqual(registry.resolve("claude"), ["claude-agent-acp"]);
+  assert.deepEqual(registry.resolve("pi"), ["pi-acp"]);
+  assert.deepEqual(registry.resolve("opencode"), ["opencode", "acp"]);
+  assert.deepEqual(registry.resolve("gemini"), ["gemini", "--acp"]);
+  assert.deepEqual(registry.resolve("custom"), ["/usr/local/bin/custom-agent", "--acp"]);
+  assert.equal(registry.resolve("unregistered-bin"), "unregistered-bin");
+  assert.throws(() => registry.resolve("mux"), /allowPackageExecFallback=false/);
+});
+
+test("AcpRuntimeOptions maxMessageBytes validates bounds and enforces inbound ACP limit", async (t) => {
+  const cwd = await fs.mkdtemp(path.join(os.tmpdir(), "acpx-runtime-max-bytes-"));
+  const base = {
+    cwd,
+    sessionStore: createMemorySessionStore(),
+    agentRegistry: createAgentRegistry({
+      overrides: {
+        fixture: [process.execPath, MOCK_AGENT_PATH],
+      },
+    }),
+    permissionMode: "approve-reads" as const,
+  };
+  for (const invalid of [-1, 1.5, Number.NaN, Number.POSITIVE_INFINITY]) {
+    assert.throws(
+      () => createAcpRuntime({ ...base, maxMessageBytes: invalid }),
+      (error) => {
+        assert.ok(error instanceof AcpRuntimeError);
+        assert.equal(error.code, "ACP_INVALID_RUNTIME_OPTION");
+        return true;
+      },
+    );
+  }
+  const runtime = createAcpRuntime({ ...base, maxMessageBytes: 256 });
+  t.after(async () => {
+    await runtime.shutdown();
+    await fs.rm(cwd, { recursive: true, force: true });
+  });
+  const handle = await runtime.ensureSession({
+    sessionKey: "max-bytes",
+    agent: "fixture",
+    mode: "oneshot",
+  });
+  const turn = runtime.startTurn({
+    handle,
+    text: `echo ${"x".repeat(600)}`,
+    mode: "prompt",
+    requestId: "oversized-turn",
+    assurance: true,
+  });
+  for await (const event of turn.events) {
+    void event;
+  }
+  const result = await turn.result;
+  assert.equal(result.status, "failed");
+});
+
+test("AcpRuntimeOptions processGroupCleanup settles oneshot turn and distinguishes cleanup_timed_out", async (t) => {
+  const cwd = await fs.mkdtemp(path.join(os.tmpdir(), "acpx-runtime-pgid-"));
+  const runtime = createAcpRuntime({
+    cwd,
+    sessionStore: createMemorySessionStore(),
+    agentRegistry: createAgentRegistry({
+      allowPackageExecFallback: false,
+      overrides: {
+        fixture: [process.execPath, MOCK_AGENT_PATH],
+      },
+    }),
+    permissionMode: "approve-reads",
+    fs: false,
+    terminal: false,
+    processGroupCleanup: true,
+    maxMessageBytes: 1024 * 1024,
+  });
+  t.after(async () => {
+    await runtime.shutdown();
+    await fs.rm(cwd, { recursive: true, force: true });
+  });
+  const handle = await runtime.ensureSession({
+    sessionKey: "pgid-oneshot",
+    agent: "fixture",
+    mode: "oneshot",
+  });
+  const turn = runtime.startTurn({
+    handle,
+    text: "echo clean-pgid",
+    mode: "prompt",
+    requestId: "pgid-req",
+    assurance: true,
+  });
+  let text = "";
+  for await (const event of turn.events) {
+    if (event.type === "text_delta") {
+      text += event.text;
+    }
+  }
+  assert.equal((await turn.result).status, "completed");
+  assert.ok(text.includes("clean-pgid"));
+  const assurance = await turn.assurance;
+  assert.equal(assurance?.delivery, "finished");
+  assert.equal(assurance?.cleanup, "owned_close_settled");
+
+  // Directly verify RuntimeTurnAssurance distinguishes cleanup_timed_out from owned_close_settled.
+  const timedOutAssurance = new RuntimeTurnAssurance({
+    handle,
+    text: "noop",
+    mode: "prompt",
+    requestId: "timeout-req",
+    assurance: true,
+  });
+  timedOutAssurance.cleanupStart(true, false);
+  timedOutAssurance.cleanupEnd(true, false, true, true);
+  timedOutAssurance.settle({ status: "completed", stopReason: "end_turn" });
+  const receipt = await timedOutAssurance.fields.assurance;
+  assert.equal(receipt?.cleanup, "cleanup_timed_out");
+});

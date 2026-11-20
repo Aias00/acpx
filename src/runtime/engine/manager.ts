@@ -388,6 +388,8 @@ export class AcpRuntimeManager {
       agentProcessEnv: this.options.agentProcessEnv,
       agentProcessEnvAllow: this.options.agentProcessEnvAllow,
       agentProcessEnvBlock: this.options.agentProcessEnvBlock,
+      maxMessageBytes: this.options.maxMessageBytes,
+      processGroupCleanup: this.options.processGroupCleanup,
       processLifecycle: {
         ...options.processLifecycle,
         onBeforeSpawn: async (launch) => {
@@ -1854,7 +1856,8 @@ export class AcpRuntimeManager {
     }
     task.assurance.cleanupStart(turn !== undefined, pooled);
     const closeAttempt = await settleAttempt(async () => this.closeRuntimeTurnClient(turn, pooled));
-    task.assurance.cleanupEnd(turn !== undefined, pooled, closeAttempt.ok);
+    const closeTimedOut = !pooled && Boolean(turn?.owner.client.didLastCloseTimeOut?.());
+    task.assurance.cleanupEnd(turn !== undefined, pooled, closeAttempt.ok, closeTimedOut);
     this.cleanupRuntimeTurn(task, turn);
     failure ??= firstFailedAttempt([closeAttempt]);
     if (failure) {
