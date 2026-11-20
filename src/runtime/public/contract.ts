@@ -21,7 +21,9 @@ import type {
   PermissionPolicy,
   SessionRecord,
 } from "../../types.js";
+import type { AcpCapabilityEvidence, AcpTurnAssurance } from "../assurance.js";
 import type { SessionAgentOptions } from "../engine/session-options.js";
+import type { AcpSafeObservationOptions } from "../observation.js";
 
 export type { SessionAgentOptions, SystemPromptOption } from "../engine/session-options.js";
 
@@ -122,6 +124,8 @@ export type AcpRuntimeTurnAttachment = {
  * A throwing assertActive rejects admission without aborting the signal.
  */
 export type AcpRuntimeTurnInput = AcpControlAuthority & {
+  /** Opt-in factual receipt; absent native/business evidence remains unknown. */
+  assurance?: boolean;
   handle: AcpRuntimeHandle;
   text: string;
   attachments?: AcpRuntimeTurnAttachment[];
@@ -138,7 +142,7 @@ export type AcpRuntimeTurnInput = AcpControlAuthority & {
   onElicitation?: AcpElicitationHandler;
 };
 
-/** Caller-owned snapshot; local mutations do not change runtime capabilities. */
+/** Local control inventory and last-advertised config keys, not peer qualification or permission. */
 export type AcpRuntimeCapabilities = {
   controls: AcpRuntimeControl[];
   configOptionKeys?: string[];
@@ -343,6 +347,7 @@ export type AcpRuntimeTurnResultError = {
   retryable?: boolean;
 };
 
+/** Client turn/finalization outcome; completion does not certify native or business success. */
 export type AcpRuntimeTurnResult =
   | {
       status: "completed";
@@ -370,11 +375,16 @@ export interface AcpRuntimeTurn {
    * have settled.
    */
   readonly result: Promise<AcpRuntimeTurnResult>;
-  cancel(input?: { reason?: string }): Promise<void>;
+  readonly assurance?: Promise<AcpTurnAssurance>;
+  /** Opt-in live snapshot. Pending/submitted is not a peer acknowledgement. */
+  getAssurance?(): Promise<AcpTurnAssurance>;
+  /** timeoutMs bounds this wait, not native tool termination or eventual dispatch. */
+  cancel(input?: { reason?: string; timeoutMs?: number }): Promise<void>;
   closeStream(input?: { reason?: string }): Promise<void>;
 }
 
 export interface AcpRuntime {
+  getCapabilityEvidence?(input?: { handle?: AcpRuntimeHandle }): Promise<AcpCapabilityEvidence>;
   /** Passively replays and follows recorded turns when the backend supports a shared journal. */
   watchSession?(input: {
     handle: AcpRuntimeHandle;
@@ -442,6 +452,12 @@ export type AcpRuntimeSessionPermissions = Partial<
 >;
 
 export type AcpRuntimeOptions = {
+  /**
+   * Separate bounded, sanitized telemetry; no verdict or delivery guarantees.
+   * v1 tool updates have session-window correlation, not native turn identity.
+   * Rich events/wire observers remain sensitive and keep their existing contract.
+   */
+  observation?: AcpSafeObservationOptions;
   cwd: string;
   /** Trusted child-only environment, snapshotted at construction and never persisted. */
   agentProcessEnv?: Record<string, string>;

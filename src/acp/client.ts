@@ -44,6 +44,7 @@ import {
 } from "../async-control.js";
 import {
   AgentDisconnectedError,
+  AcpProtocolVersionError,
   AgentSpawnError,
   AgentStartupError,
   AuthPolicyError,
@@ -71,6 +72,7 @@ import type {
   AcpProcessLaunch,
   AcpProcessLaunchScope,
   AcpProcessStarted,
+  AcpPromptDeliveryEvent,
   NonInteractivePermissionPolicy,
   PermissionMode,
   PermissionStats,
@@ -294,6 +296,7 @@ type ActivePromptState = {
   promise?: Promise<PromptResponse>;
   cancelPromise?: Promise<void>;
   onRequestWritten?: () => Promise<void> | void;
+  onDelivery?: (event: AcpPromptDeliveryEvent) => void;
   authority?: AcpControlAuthority;
   admissionFailure?: { error: unknown };
   elicitationHandler?: AcpElicitationHandler;
@@ -1132,6 +1135,9 @@ export class AcpClient {
     const initialized = launch.geminiAcp
       ? await withTimeout(initializePromise, resolveGeminiAcpStartupTimeoutMs())
       : await initializePromise;
+    if (initialized.protocolVersion !== PROTOCOL_VERSION) {
+      throw new AcpProtocolVersionError(PROTOCOL_VERSION, initialized.protocolVersion);
+    }
     await this.authenticateIfRequired(connection, initialized.authMethods ?? []);
     return initialized;
   }
@@ -1173,6 +1179,9 @@ export class AcpClient {
   }): ReturnType<typeof observeAcpStream> {
     return observeAcpStream(base, {
       onMessage: (direction, message) => {
+        if (direction === "inbound") {
+          this.observePromptResponse(message);
+        }
         this.eventHandlers.onAcpOutputMessage?.(direction, message);
         this.eventHandlers.onAcpMessage?.(direction, message);
       },
@@ -1180,6 +1189,8 @@ export class AcpClient {
       bindPromptOwner: (owner) => this.bindPromptOwner(owner),
       assertPromptActive: (active) => this.assertPromptActive(active),
       onPromptRequestWritten: (active, owner) => this.onPromptRequestWritten(active, owner),
+      onPromptRequestWriting: (active, owner) =>
+        this.observePromptDelivery(active, { type: "dispatching", ...owner }),
     });
   }
 
@@ -1322,6 +1333,7 @@ export class AcpClient {
     onElicitation?: AcpElicitationHandler,
     onPermissionRequest?: AcpPermissionHandler,
     authority?: AcpControlAuthority,
+    onDelivery?: (event: AcpPromptDeliveryEvent) => void,
   ): Promise<PromptResponse> {
     const connection = this.getConnection();
     const normalizedPrompt = this.normalizePromptForAgent(prompt);
@@ -1337,6 +1349,7 @@ export class AcpClient {
       onPermissionRequest,
       authority,
     );
+    activePrompt.onDelivery = onDelivery;
 
     try {
       const promptPromise = this.runConnectionRequest(
@@ -1417,10 +1430,34 @@ export class AcpClient {
     if (active.requestId !== owner.requestId || active.sessionId !== owner.sessionId) {
       return;
     }
+    this.observePromptDelivery(active, { type: "submitted", ...owner });
     try {
       void Promise.resolve(active.onRequestWritten?.()).catch(() => {});
     } catch {
       // Readiness observation must not own a request accepted by the transport.
+    }
+  }
+
+  private observePromptDelivery(active: ActivePromptState, event: AcpPromptDeliveryEvent): void {
+    try {
+      active.onDelivery?.(event);
+    } catch {
+      // Evidence observation cannot own transport progress or change its outcome.
+    }
+  }
+
+  private observePromptResponse(message: AnyMessage): void {
+    if (!("id" in message) || "method" in message) {
+      return;
+    }
+    const active = this.pendingPromptOwners.find((owner) => owner.requestId === message.id);
+    if (active) {
+      this.observePromptDelivery(active, {
+        type: "response",
+        requestId: message.id,
+        sessionId: active.sessionId,
+        ...("error" in message ? { errorCode: message.error.code } : {}),
+      });
     }
   }
 
@@ -1644,6 +1681,9 @@ export class AcpClient {
     }
     permissionController?.abort();
     await cancellation;
+    if (active) {
+      this.observePromptDelivery(active, { type: "cancel_written" });
+    }
   }
 
   async closeSession(sessionId: string): Promise<void> {

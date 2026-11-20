@@ -15,6 +15,7 @@ type ObservedStreamOptions<T> = {
   bindPromptOwner: (owner: PromptOwner) => T | undefined;
   assertPromptActive: (active: T) => void;
   onPromptRequestWritten: (active: T, owner: PromptOwner) => void;
+  onPromptRequestWriting?: (active: T, owner: PromptOwner) => void;
 };
 
 export function observeAcpStream<T>(
@@ -61,6 +62,11 @@ export function observeAcpStream<T>(
     },
   });
 
+  const observePromptWriting = (active: T | undefined, owner: PromptOwner | undefined): void => {
+    if (active && owner) {
+      options.onPromptRequestWriting?.(active, owner);
+    }
+  };
   const writable = new WritableStream<AnyMessage>({
     async write(message) {
       const promptOwner = promptRequestOwner(message);
@@ -75,6 +81,7 @@ export function observeAcpStream<T>(
       }
       const writer = base.writable.getWriter();
       try {
+        observePromptWriting(activePrompt, promptOwner);
         await writer.write(message);
       } finally {
         writer.releaseLock();

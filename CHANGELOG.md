@@ -46,6 +46,10 @@ Repo: https://github.com/openclaw/acpx
 - Sessions/list: preserve accepted opaque pagination cursors without trimming them. Thanks @saariuslystoned.
 - CLI: identify missing or non-file prompt, flow, and flow-input paths while preserving exit codes and JSON error envelopes. Thanks @KrasimirKralev.
 
+- ACP: reject incompatible initialize protocol versions before authentication or session creation.
+- Runtime/embedding: add opt-in capability evidence, correlated turn/delivery/cancellation receipts, bounded cancel waits and a separate bounded sanitized observation sink. Ordinary v1 turn results retain their existing semantics; native and business outcomes remain unknown without separate evidence.
+- Runtime/observation: correlate safe telemetry with actual native-session/RPC dispatch, bound output per turn, preserve one tool identity across updates and report missing or dropped coverage. Wrong-session and post-response tool updates are excluded; v1 tool correlation remains an explicitly partial session window. Failing or stalled sinks cannot change turn results.
+
 ## 0.22.0 - 2026-11-06
 
 **Highlights:** Patch security advisories in glob, minimatch, qs, and re2js; add Goose, DeepSeek Harness, and experimental Ante support; expose ACP message observation, configure models per flow node, and improve session reliability and shell diagnostics.

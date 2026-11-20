@@ -1,0 +1,142 @@
+TAP version 13
+# Subtest: fork observation: opt-in is independent of assurance and rich events
+ok 1 - fork observation: opt-in is independent of assurance and rich events
+  ---
+  duration_ms: 1067.606583
+  type: 'test'
+  ...
+# Subtest: fork observation: resumable uses the public runtime with truthful lifecycle and unknown outcomes
+ok 2 - fork observation: resumable uses the public runtime with truthful lifecycle and unknown outcomes
+  ---
+  duration_ms: 1057.704
+  type: 'test'
+  ...
+# Subtest: fork observation: basic uses the public runtime with truthful lifecycle and unknown outcomes
+ok 3 - fork observation: basic uses the public runtime with truthful lifecycle and unknown outcomes
+  ---
+  duration_ms: 1046.585709
+  type: 'test'
+  ...
+# Subtest: fork observation: one tool call keeps identity/status across multiple partial updates
+ok 4 - fork observation: one tool call keeps identity/status across multiple partial updates
+  ---
+  duration_ms: 1075.095667
+  type: 'test'
+  ...
+# Subtest: fork observation: privacy allowlist excludes malicious payloads/secrets and preserves rich events
+ok 5 - fork observation: privacy allowlist excludes malicious payloads/secrets and preserves rich events
+  ---
+  duration_ms: 1072.093208
+  type: 'test'
+  ...
+# Subtest: fork observation: wrong-session and pre/post-turn updates do not acquire current tool identity
+ok 6 - fork observation: wrong-session and pre/post-turn updates do not acquire current tool identity
+  ---
+  duration_ms: 2175.733583
+  type: 'test'
+  ...
+# Subtest: fork observation: update-only and oversized/over-limit tool IDs mark incomplete tracking
+ok 7 - fork observation: update-only and oversized/over-limit tool IDs mark incomplete tracking
+  ---
+  duration_ms: 1058.049458
+  type: 'test'
+  ...
+# Subtest: fork observation: total per-turn output stays bounded with a fast sink and reserves a summary
+ok 8 - fork observation: total per-turn output stays bounded with a fast sink and reserves a summary
+  ---
+  duration_ms: 1215.25475
+  type: 'test'
+  ...
+# Subtest: fork observation: stalled sink has one call, bounded queue/bytes, timeout and no verdict change
+ok 9 - fork observation: stalled sink has one call, bounded queue/bytes, timeout and no verdict change
+  ---
+  duration_ms: 1197.846625
+  type: 'test'
+  ...
+# Subtest: fork observation: throw sink is disabled, counted, isolated from result and private diagnostics
+ok 10 - fork observation: throw sink is disabled, counted, isolated from result and private diagnostics
+  ---
+  duration_ms: 1043.7255
+  type: 'test'
+  ...
+# Subtest: fork observation: reject sink is disabled, counted, isolated from result and private diagnostics
+ok 11 - fork observation: reject sink is disabled, counted, isolated from result and private diagnostics
+  ---
+  duration_ms: 1042.616125
+  type: 'test'
+  ...
+# Subtest: fork observation: a recovering slow sink stays ordered after queue overflow
+ok 12 - fork observation: a recovering slow sink stays ordered after queue overflow
+  ---
+  duration_ms: 1056.793375
+  type: 'test'
+  ...
+# Subtest: fork observation: eof preserves fixed failure category, delivery and no replay
+ok 13 - fork observation: eof preserves fixed failure category, delivery and no replay
+  ---
+  duration_ms: 47.987291
+  type: 'test'
+  ...
+# Subtest: fork observation: rpc-error preserves fixed failure category, delivery and no replay
+ok 14 - fork observation: rpc-error preserves fixed failure category, delivery and no replay
+  ---
+  duration_ms: 53.943083
+  type: 'test'
+  ...
+# Subtest: fork observation: before-dispatch preserves fixed failure category, delivery and no replay
+ok 15 - fork observation: before-dispatch preserves fixed failure category, delivery and no replay
+  ---
+  duration_ms: 47.152709
+  type: 'test'
+  ...
+# Subtest: fork observation: ignored cancellation reports intent and write without acknowledgement or native stop
+ok 16 - fork observation: ignored cancellation reports intent and write without acknowledgement or native stop
+  ---
+  duration_ms: 1061.901666
+  type: 'test'
+  ...
+# Subtest: fork observation: shutdown does not wait for sink and late resolution cannot restart delivery
+ok 17 - fork observation: shutdown does not wait for sink and late resolution cannot restart delivery
+  ---
+  duration_ms: 1082.919833
+  type: 'test'
+  ...
+# Subtest: fork observation: tiny byte limit drops even first record without affecting a turn
+ok 18 - fork observation: tiny byte limit drops even first record without affecting a turn
+  ---
+  duration_ms: 1053.412208
+  type: 'test'
+  ...
+# Subtest: fork observation: finalization failure preserves finished transport with a failed turn
+ok 19 - fork observation: finalization failure preserves finished transport with a failed turn
+  ---
+  duration_ms: 1035.476042
+  type: 'test'
+  ...
+# Subtest: fork observation: timed-out sink late rejection is counted once and releases retained bytes
+ok 20 - fork observation: timed-out sink late rejection is counted once and releases retained bytes
+  ---
+  duration_ms: 1046.988292
+  type: 'test'
+  ...
+# Subtest: fork observation: nonfinite options use defaults and output minimum reserves settlement
+ok 21 - fork observation: nonfinite options use defaults and output minimum reserves settlement
+  ---
+  duration_ms: 1064.525667
+  type: 'test'
+  ...
+# Subtest: fork observation: session aliases distinguish client records and runtime salts prevent cross-runtime joins
+ok 22 - fork observation: session aliases distinguish client records and runtime salts prevent cross-runtime joins
+  ---
+  duration_ms: 4263.413041
+  type: 'test'
+  ...
+1..22
+# tests 22
+# suites 0
+# pass 22
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 25096.631625

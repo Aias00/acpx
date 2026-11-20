@@ -43,6 +43,19 @@ export class SessionNotFoundError extends AcpxOperationalError {
 
 export class SessionResolutionError extends AcpxOperationalError {}
 
+/** The v1 client cannot safely interpret a different protocol dialect. */
+export class AcpProtocolVersionError extends AcpxOperationalError {
+  constructor(
+    readonly offered: number,
+    readonly received: number,
+  ) {
+    super(`Incompatible ACP protocol version: offered ${offered}, received ${received}.`, {
+      detailCode: "ACP_PROTOCOL_VERSION_MISMATCH",
+      retryable: false,
+    });
+  }
+}
+
 export type SpawnPathContext = {
   command: string;
   cwd: string;

@@ -2,6 +2,7 @@ import type { SetSessionConfigOptionResponse } from "@agentclientprotocol/sdk";
 import { snapshotEnvNames } from "./acp/inherited-env.js";
 import { DEFAULT_AGENT_NAME } from "./agent-registry.js";
 import type { AcpControlAuthority } from "./async-control.js";
+import { capabilityEvidence } from "./runtime/assurance.js";
 import { capabilitiesFromRecord } from "./runtime/engine/controls.js";
 import { AcpRuntimeManager } from "./runtime/engine/manager.js";
 import type {
@@ -24,6 +25,16 @@ import { normalizeRuntimeDetails } from "./runtime/public/probe.js";
 import { deriveAgentFromSessionKey, type AcpxHandleState } from "./runtime/public/shared.js";
 
 export { DEFAULT_AGENT_NAME, createFileSessionStore };
+export type {
+  AcpCapabilityEvidence,
+  AcpEvidenceState,
+  AcpTurnAssurance,
+} from "./runtime/assurance.js";
+export type {
+  AcpSafeObservation,
+  AcpSafeObservationOptions,
+  AcpSafeObservationStats,
+} from "./runtime/observation.js";
 export { createAgentRegistry } from "./agent-registry.js";
 export { inspectAgentModels } from "./runtime/public/probe.js";
 export type { InspectAgentModelsOptions } from "./runtime/public/probe.js";
@@ -251,25 +262,18 @@ export class AcpxRuntime implements AcpxRuntimeLike {
     validateRuntimeTimeoutMs(timeoutMs);
     const { handle, state } = this.resolveManagerHandle(input.handle);
     const managerPromise = this.getManager();
-    const turnPromise = managerPromise.then((manager) =>
-      manager.startTurn({
-        handle,
-        text: input.text,
-        attachments: input.attachments,
-        mode: input.mode,
-        sessionMode: state.mode,
-        requestId: input.requestId,
-        timeoutMs,
-        signal: input.signal,
-        assertActive: input.assertActive,
-        onElicitation: input.onElicitation,
-        onPermissionRequest: input.onPermissionRequest,
-      }),
-    );
+    const admitted = {
+      ...input,
+      handle,
+      attachments: input.attachments?.map((attachment) => ({ ...attachment })),
+      sessionMode: state.mode,
+      timeoutMs,
+    };
+    const turnPromise = managerPromise.then((manager) => manager.startTurn(admitted));
     // Callers may hold the turn before reading its lazy promises or events.
     void turnPromise.catch(() => {});
     return {
-      requestId: input.requestId,
+      requestId: admitted.requestId,
       get promptStarted() {
         return turnPromise.then((turn) => turn.promptStarted);
       },
@@ -282,7 +286,13 @@ export class AcpxRuntime implements AcpxRuntimeLike {
       get result() {
         return turnPromise.then((turn) => turn.result);
       },
-      cancel(inputArgs?: { reason?: string }) {
+      get assurance() {
+        return admitted.assurance ? turnPromise.then((turn) => turn.assurance!) : undefined;
+      },
+      ...(admitted.assurance
+        ? { getAssurance: () => turnPromise.then((turn) => turn.getAssurance!()) }
+        : {}),
+      cancel(inputArgs?: { reason?: string; timeoutMs?: number }) {
         return turnPromise.then((turn) => turn.cancel(inputArgs));
       },
       closeStream(inputArgs?: { reason?: string }) {
@@ -308,7 +318,21 @@ export class AcpxRuntime implements AcpxRuntimeLike {
       assertActive: input.assertActive,
       onElicitation: input.onElicitation,
       onPermissionRequest: input.onPermissionRequest,
+      assurance: input.assurance,
     });
+  }
+
+  async getCapabilityEvidence(input?: { handle?: AcpRuntimeHandle }) {
+    const record = input?.handle
+      ? await this.options.sessionStore.load(
+          this.resolveManagerHandle(input.handle).handle.acpxRecordId!,
+        )
+      : undefined;
+    return capabilityEvidence(record, capabilitiesFromRecord(record).controls);
+  }
+
+  getObservationStats() {
+    return this.manager?.getObservationStats();
   }
 
   async getCapabilities(input?: { handle?: AcpRuntimeHandle }): Promise<AcpRuntimeCapabilities> {

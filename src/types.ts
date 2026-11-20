@@ -264,6 +264,12 @@ export type AcpProcessLifecycle = {
   onExit?: (exit: AcpProcessExit) => Promise<void> | void;
 };
 
+/** Internal factual transport observations, never model/native outcome evidence. */
+export type AcpPromptDeliveryEvent =
+  | { type: "dispatching" | "submitted"; sessionId: string; requestId: string | number | null }
+  | { type: "response"; sessionId: string; requestId: string | number | null; errorCode?: number }
+  | { type: "cancel_written" };
+
 export type AcpClientOptions = {
   agentCommand: string;
   agentArgv?: string[];
