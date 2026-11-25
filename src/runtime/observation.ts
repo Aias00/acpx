@@ -42,6 +42,7 @@ export type AcpSafeObservation = Readonly<{
   nativeToolsStopped?: "unknown";
   cleanup?: AcpTurnAssurance["cleanup"];
   durationMs?: number;
+  timingMs?: AcpTurnAssurance["timingMs"];
   toolCalls: number;
   coverage: "partial";
   dropped: number;
@@ -367,6 +368,7 @@ export class SafeTurnObserver {
       turnStatus: receipt.turnStatus,
       failureCategory: receipt.failureCategory,
       durationMs: receipt.durationMs,
+      ...(receipt.timingMs === undefined ? {} : { timingMs: Object.freeze({ ...receipt.timingMs }) }),
       backendOutcome: "unknown",
       businessValidation: "unknown",
       cancelRequested: receipt.cancellation.requested,

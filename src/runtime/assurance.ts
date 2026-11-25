@@ -100,11 +100,29 @@ export type AcpTurnAssurance = {
     | "transport_or_client"
     | "client_finalization";
   durationMs: number;
+  /** Whole milliseconds between observed phases, omitted when a pair is incomplete. */
+  timingMs?: Readonly<{
+    dispatchToResponse?: number;
+    cancelWriteToAcknowledgement?: number;
+    responseToSettlement?: number;
+  }>;
 };
+
+function elapsedMs(start: number | undefined, end: number | undefined): number | undefined {
+  if (start === undefined || end === undefined) {
+    return undefined;
+  }
+  const elapsed = Math.floor(end - start);
+  return Number.isSafeInteger(elapsed) && elapsed >= 0 ? elapsed : undefined;
+}
 
 /** One bounded tracker per admitted turn. Never reads prose, _meta or native files. */
 export class TurnEvidence {
   private readonly startedAt = performance.now();
+  private dispatchedAt?: number;
+  private respondedAt?: number;
+  private cancelWrittenAt?: number;
+  private cancelAcknowledgedAt?: number;
   private attempted = false;
   private submitted = false;
   private response: "response" | "rpc_error" | undefined;
@@ -121,12 +139,22 @@ export class TurnEvidence {
 
   observe(event: AcpPromptDeliveryEvent): void {
     if (event.type === "cancel_written") {
+      if (this.cancelAcknowledgedAt === undefined) {
+        this.cancelWrittenAt ??= performance.now();
+      }
       this.cancelWritten = true;
       return;
     }
+    this.observePrompt(event);
+  }
+
+  private observePrompt(event: Exclude<AcpPromptDeliveryEvent, { type: "cancel_written" }>): void {
     this.identity.backendSessionId = event.sessionId;
     this.identity.rpcRequestId = event.requestId;
     if (event.type === "dispatching") {
+      if (this.respondedAt === undefined) {
+        this.dispatchedAt ??= performance.now();
+      }
       this.attempted = true;
     }
     if (event.type === "submitted") {
@@ -135,15 +163,21 @@ export class TurnEvidence {
     // A duplicate success can never overwrite a settled RPC error.
     if (event.type === "response" && !this.response) {
       this.response = event.errorCode === undefined ? "response" : "rpc_error";
+      this.respondedAt = performance.now();
     }
   }
 
   stopReason(value: string): void {
     this.acknowledged = value === "cancelled";
+    if (this.acknowledged) {
+      this.cancelAcknowledgedAt ??= performance.now();
+    }
   }
 
   snapshot(result?: AcpRuntimeTurnResult): AcpTurnAssurance {
     const transport = this.response ?? (this.attempted ? "no_response" : "not_dispatched");
+    const now = performance.now();
+    const timingMs = this.phaseTiming(result === undefined ? undefined : now);
     return {
       schemaVersion: 1,
       identity: { ...this.identity },
@@ -160,7 +194,26 @@ export class TurnEvidence {
       },
       cleanup: this.cleanup,
       failureCategory: this.failureCategory(result),
-      durationMs: Math.max(0, performance.now() - this.startedAt),
+      durationMs: Math.max(0, now - this.startedAt),
+      ...(timingMs === undefined ? {} : { timingMs }),
+    };
+  }
+
+  private phaseTiming(settledAt?: number): AcpTurnAssurance["timingMs"] {
+    const dispatchToResponse = elapsedMs(this.dispatchedAt, this.respondedAt);
+    const cancelWriteToAcknowledgement = elapsedMs(this.cancelWrittenAt, this.cancelAcknowledgedAt);
+    const responseToSettlement = elapsedMs(this.respondedAt, settledAt);
+    if (
+      dispatchToResponse === undefined &&
+      cancelWriteToAcknowledgement === undefined &&
+      responseToSettlement === undefined
+    ) {
+      return undefined;
+    }
+    return {
+      ...(dispatchToResponse === undefined ? {} : { dispatchToResponse }),
+      ...(cancelWriteToAcknowledgement === undefined ? {} : { cancelWriteToAcknowledgement }),
+      ...(responseToSettlement === undefined ? {} : { responseToSettlement }),
     };
   }
 

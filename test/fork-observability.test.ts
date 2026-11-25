@@ -4,7 +4,56 @@ import path from "node:path";
 import test from "node:test";
 import { setTimeout as delay } from "node:timers/promises";
 import type { AcpRuntimeEvent } from "../src/runtime.js";
+import { TurnEvidence } from "../src/runtime/assurance.js";
 import { input, observedFixture, secret, settled, waitFor } from "./fork-observability-helpers.js";
+
+test("fork assurance: phase timing uses the first observations and the settled snapshot", (t) => {
+  let now = 0;
+  t.mock.method(performance, "now", () => now);
+  const evidence = new TurnEvidence({ requestId: "request", turnId: "turn" });
+  const owner = { sessionId: "session", requestId: 1 };
+
+  assert.equal(Object.hasOwn(evidence.snapshot(), "timingMs"), false);
+  evidence.observe({ type: "dispatching", ...owner });
+  now = 2;
+  evidence.observe({ type: "dispatching", ...owner });
+  evidence.observe({ type: "cancel_written" });
+  now = 4;
+  evidence.observe({ type: "cancel_written" });
+  now = 6.75;
+  evidence.observe({ type: "response", ...owner, errorCode: -32603 });
+  evidence.stopReason("cancelled");
+  now = 10;
+  evidence.observe({ type: "response", ...owner });
+  evidence.stopReason("cancelled");
+
+  assert.deepEqual(evidence.snapshot().timingMs, {
+    dispatchToResponse: 6,
+    cancelWriteToAcknowledgement: 4,
+  });
+  const receipt = evidence.snapshot({ status: "cancelled" });
+  assert.equal(receipt.transport, "rpc_error");
+  assert.deepEqual(receipt.timingMs, {
+    dispatchToResponse: 6,
+    cancelWriteToAcknowledgement: 4,
+    responseToSettlement: 3,
+  });
+});
+
+test("fork assurance: late observations cannot supply phase starts at the same clock tick", (t) => {
+  t.mock.method(performance, "now", () => 0);
+  const evidence = new TurnEvidence({ requestId: "request", turnId: "turn" });
+  const owner = { sessionId: "session", requestId: 1 };
+  evidence.observe({ type: "response", ...owner });
+  evidence.observe({ type: "dispatching", ...owner });
+  evidence.observe({ type: "response", ...owner });
+  evidence.stopReason("cancelled");
+  evidence.observe({ type: "cancel_written" });
+  evidence.stopReason("cancelled");
+
+  assert.equal(Object.hasOwn(evidence.snapshot(), "timingMs"), false);
+  assert.deepEqual(evidence.snapshot({ status: "cancelled" }).timingMs, { responseToSettlement: 0 });
+});
 
 test("fork observation: opt-in is independent of assurance and rich events", async () => {
   await observedFixture(
@@ -63,6 +112,17 @@ for (const profile of ["resumable", "basic"]) {
         assert.equal(end.backendOutcome, "unknown");
         assert.equal(end.businessValidation, "unknown");
         assert.ok(end.durationMs! >= 0);
+        assert.deepEqual(Object.keys(end.timingMs!).sort(), [
+          "dispatchToResponse",
+          "responseToSettlement",
+        ]);
+        assert.ok(
+          Object.values(end.timingMs!).every(
+            (ms) => typeof ms === "number" && Number.isSafeInteger(ms) && ms >= 0,
+          ),
+        );
+        assert.ok(Object.isFrozen(end.timingMs));
+        assert.ok(f.events.every((event) => event === end || !Object.hasOwn(event, "timingMs")));
         assert.ok(
           f.events.every(
             (event, i) =>
