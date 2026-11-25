@@ -38,6 +38,7 @@ type BuiltInLaunchResolverOptions = {
   resolvePackageRoot?: (packageName: string) => string | undefined;
   execPath?: string;
   resolveNpmCliPath?: (execPath: string) => string;
+  allowPackageExecFallback?: boolean;
 };
 
 type AgentDefinition = {
@@ -511,10 +512,11 @@ export function resolveBuiltInAgentLaunch(
   agentCommand: string,
   options: BuiltInLaunchResolverOptions = {},
 ): BuiltInAgentLaunch | undefined {
-  return (
-    resolveInstalledBuiltInAgentLaunch(agentCommand, options) ??
-    resolvePackageExecBuiltInAgentLaunch(agentCommand, options)
-  );
+  const installed = resolveInstalledBuiltInAgentLaunch(agentCommand, options);
+  if (installed || options.allowPackageExecFallback === false) {
+    return installed;
+  }
+  return resolvePackageExecBuiltInAgentLaunch(agentCommand, options);
 }
 
 export function listBuiltInAgents(overrides?: Record<string, unknown>): string[] {
@@ -530,16 +532,56 @@ export type AcpInspectableAgentRegistry = AcpAgentRegistry & {
   inspect(agentId: string): AcpAgentInspection | undefined;
 };
 
-export function createAgentRegistry(
-  params?: {
-    overrides?: Record<string, string | string[]>;
-  } & AcpAgentInspectionOptions,
-): AcpInspectableAgentRegistry {
+export type AcpAgentRegistryOptions = {
+  overrides?: Record<string, string | string[]>;
+  /**
+   * When false, built-in agents resolve only locally installed binaries or packages and never fall
+   * back to package runners such as npx or uvx. Defaults to true.
+   */
+  allowPackageExecFallback?: boolean;
+} & AcpAgentInspectionOptions;
+
+function resolveWithoutPackageExecFallback(
+  agentName: string,
+  options: AcpAgentInspectionOptions,
+): string | string[] {
+  const definition = findAgentEntry(AGENT_DEFINITIONS, agentName);
+  if (!definition) {
+    return resolveAgentCommand(agentName);
+  }
+  if (definition.installedArgv) {
+    if (definition.package) {
+      const installed = resolveInstalledBuiltInAgentLaunchForSpec(
+        { ...definition.package, fallbackCommand: definition.argv.join(" ") },
+        options,
+      );
+      if (installed) {
+        return [installed.command, ...installed.args];
+      }
+    }
+    return [...definition.installedArgv];
+  }
+  if (isPackageExecution(definition.argv)) {
+    throw new Error(
+      `Agent "${agentName}" requires package-exec fallback, which is disabled (allowPackageExecFallback=false).`,
+    );
+  }
+  return [...definition.argv];
+}
+
+export function createAgentRegistry(params?: AcpAgentRegistryOptions): AcpInspectableAgentRegistry {
   const overrides = normalizeRegistryOverrides(params?.overrides);
+  const allowPackageExecFallback = params?.allowPackageExecFallback !== false;
   return {
     resolve(agentName: string) {
       const override = findAgentEntry(overrides, agentName);
-      return override ?? resolveAgentArgv(agentName) ?? resolveAgentCommand(agentName);
+      if (override) {
+        return override;
+      }
+      if (!allowPackageExecFallback) {
+        return resolveWithoutPackageExecFallback(agentName, params ?? {});
+      }
+      return resolveAgentArgv(agentName) ?? resolveAgentCommand(agentName);
     },
     list() {
       return listBuiltInAgents(overrides);

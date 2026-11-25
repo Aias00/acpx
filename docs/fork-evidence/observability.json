@@ -1,0 +1,192 @@
+{
+  "base_commit": "48c1615057ae43893f80868f81cd3ee0445eb0ae",
+  "stage": "observability",
+  "observed_on": "2026-11-19",
+  "observed_at_utc": "2026-11-20T03:09:44Z",
+  "scope": "Actual exported in-process runtime, existing ordered ACP event path and isolated local stdio fixture subprocesses. Node 24.22.1 / pnpm 11.27.1. No native-agent/provider/business call, live ATO, credentials or service mutation.",
+  "changes": [
+    {
+      "behavior": "Separate opt-in schema-v1 safe sink, independent of assurance and sensitive rich events. Fixed field/status/category allowlist; no arbitrary text/prose/error parsing, raw tools, thoughts, titles, paths, stderr or untrusted _meta authority. Frozen primitive-only records and runtime-salted aliases.",
+      "source": ["src/runtime/observation.ts", "src/runtime/public/contract.ts"]
+    },
+    {
+      "behavior": "Use the existing per-owner ordered inbound ACP message path before asynchronous SDK update handling. Match the actual dispatched native session and exclude pre-dispatch, wrong-session and post-response reports. No second transport, daemon, event-graph node, notifier or live integration.",
+      "source": ["src/runtime/engine/manager.ts", "src/runtime/observation.ts"],
+      "evidence": "A first implementation observing delayed SDK callbacks dropped valid tool reports when response ingress came first. The final implementation preserves raw ingress ordering and passes both the predecessor two-update case and the new four-update case."
+    },
+    {
+      "behavior": "Correlate the admitted record/caller request, distinct client turn, actual native session/RPC dispatch and turn-scoped tool IDs. The opt-in private assurance receipt supplies a detached observationIdentity alias mapping for caller-owned association of concurrent requests.",
+      "source": [
+        "src/runtime/assurance.ts",
+        "src/runtime/turn-assurance.ts",
+        "src/runtime/observation.ts"
+      ],
+      "evidence": "Tests compare the receipt RPC ID with actual subprocess prompt receipts, compare all safe aliases with the terminal observation, and mutate a returned mapping without changing later snapshots. Reused request/tool IDs get distinct turn/tool aliases; runtime salts differ."
+    },
+    {
+      "behavior": "Expose client lifecycle, monotonic sequence/time, elapsed turn/tool observation duration, transport/delivery/turn status, fixed failure categories and separate cancel intent/write/acknowledgement/cleanup. Native tool termination, backend outcome and business validation remain unknown.",
+      "source": ["src/runtime/observation.ts", "src/runtime/turn-assurance.ts"],
+      "evidence": "Directed cases cover unsent authority failure, one-effect ambiguous EOF without replay, explicit RPC error, completed transport with finalization failure, ignored cancellation and ordinary empty/completed v1 semantics."
+    },
+    {
+      "behavior": "Count one tracked tool ID once across updates; preserve status on statusless updates. Explicit partial, update_only, untracked, trackingTruncated and ignoredUpdates markers. ACP v1 tool attribution is labeled active_session_window, not native turn proof.",
+      "source": ["src/runtime/observation.ts"],
+      "evidence": "Four reports retain one ID/count with pending/in_progress/in_progress/failed states. An orphan update remains unknown/update_only; oversized and over-limit IDs remain untracked with a final count of one."
+    },
+    {
+      "behavior": "Bound pending event count/serialized bytes (including in-flight), tracked tool IDs, per-turn total accepted output and each event. Reserve one per-turn output slot for settlement without promising terminal delivery when queue/bytes are full.",
+      "source": ["src/runtime/observation.ts"],
+      "evidence": "The paced 60-tool/120-update flood emits at most eight events with a configured eight-event budget, reports >=100 dropped events, a sequence gap and tracking truncation at two IDs. A one-byte pending budget emits no records while the turn completes."
+    },
+    {
+      "behavior": "Only one sink call in flight. Disable on throw/rejection or async timeout, count failed/expired in-flight calls once, drop pending records, keep an unresolved slot occupied, never await observation for result or shutdown. Stats retain loss/failure information when terminal events cannot reach the sink.",
+      "source": ["src/runtime/observation.ts"],
+      "evidence": "Throw/reject/stall/recovery/shutdown/late-rejection cases verify unchanged completed results, <=one concurrent call, bounded bytes, positive drop counters, disabled state, eventual byte release and no repeated timeout/rejection failure count."
+    }
+  ],
+  "bounds": {
+    "pending_events": {
+      "default": 64,
+      "hard_max": 1024,
+      "includes_in_flight": true
+    },
+    "pending_serialized_bytes": {
+      "default": 65536,
+      "hard_max": 1048576,
+      "includes_in_flight": true
+    },
+    "tracked_tools_per_turn": {
+      "default": 128,
+      "hard_max": 2048
+    },
+    "accepted_events_per_turn": {
+      "default": 256,
+      "minimum": 2,
+      "hard_max": 4096,
+      "reserved_settlement_slot": true
+    },
+    "serialized_bytes_per_event": 2048,
+    "accepted_serialized_bytes_per_turn": {
+      "default_upper_bound": 524288,
+      "hard_upper_bound": 8388608
+    },
+    "sink_timeout_ms": {
+      "default": 1000,
+      "hard_max": 60000
+    },
+    "sink_concurrency": 1,
+    "client_observation_disk_storage": "none; external retention is caller-owned and must be bounded by the caller"
+  },
+  "directed_tests": {
+    "file": "test/fork-observability.test.ts",
+    "tests": 22,
+    "pass": 22,
+    "fail": 0,
+    "cancelled": 0,
+    "skipped": 0,
+    "todo": 0,
+    "duration_ms": 25096.631625,
+    "evidence": "docs/fork-evidence/observability-local.tap",
+    "fixture_profiles": ["resumable: loadSession=true", "basic: loadSession=false"]
+  },
+  "predecessor_regression": {
+    "file": "test/fork-reliability.test.ts",
+    "tests": 20,
+    "pass": 20,
+    "fail": 0,
+    "cancelled": 0,
+    "skipped": 0,
+    "todo": 0,
+    "duration_ms": 15774.409042,
+    "evidence": "docs/fork-evidence/observability-reliability.tap"
+  },
+  "inherited_regression": {
+    "files": ["test/runtime-events.test.ts", "test/runtime-manager.test.ts"],
+    "tests": 117,
+    "pass": 117,
+    "fail": 0,
+    "cancelled": 0,
+    "skipped": 0,
+    "todo": 0,
+    "duration_ms": 2937.203125,
+    "evidence": "docs/fork-evidence/observability-inherited.tap"
+  },
+  "built_export_example": {
+    "command": "node examples/runtime-assurance.mjs",
+    "passed": true,
+    "public_import": "acpx/runtime",
+    "synthetic_profiles": 2,
+    "safe_records": 16,
+    "summary_records": 2,
+    "stderr_bytes": 0,
+    "private_sentinels_in_output": false,
+    "all_safe_records_partial": true,
+    "per_profile_accepted_event_cap": 8,
+    "unknown_backend_and_business_outcomes": true,
+    "scratch": "caller-owned private mkdtemp; runtime shutdown then removal"
+  },
+  "validation": [
+    {
+      "command": "node_modules/.bin/tsc --noEmit",
+      "result": "passed"
+    },
+    {
+      "command": "node_modules/.bin/tsc -p tsconfig.test.json",
+      "result": "passed"
+    },
+    {
+      "command": "node_modules/.bin/tsdown src/cli.ts src/flows.ts src/runtime.ts src/agent-registry.ts --format esm --dts --clean --platform node --target node22 --no-fixedExtension",
+      "result": "passed; exact installed build-script command; existing ineffective dynamic-import warning retained"
+    },
+    {
+      "command": "node --test --test-concurrency=1 dist-test/test/fork-observability.test.js",
+      "result": "22 passed; no failures, skips, cancellations or todos"
+    },
+    {
+      "command": "node --test --test-concurrency=1 dist-test/test/fork-reliability.test.js",
+      "result": "20 passed; inherited predecessor source/tests not edited"
+    },
+    {
+      "command": "node --test --test-concurrency=2 dist-test/test/runtime-events.test.js dist-test/test/runtime-manager.test.js",
+      "result": "117 passed; inherited tests unchanged"
+    },
+    {
+      "command": "node_modules/.bin/oxlint --type-aware --deny-warnings src scripts examples test conformance",
+      "result": "passed; complexity <=8 enforced; final recheck recorded before handoff"
+    },
+    {
+      "command": "node_modules/.bin/oxfmt --check",
+      "result": "passed before report creation; final recheck includes reports/checkpoint"
+    },
+    {
+      "command": "node_modules/.bin/markdownlint-cli2 README.md 'docs/**/*.md' 'examples/flows/**/*.md' && node scripts/build-docs-site.mjs",
+      "result": "passed; Markdown lint and docs-site build/link checks; final recheck includes checkpoint"
+    },
+    {
+      "command": "pnpm run build",
+      "result": "pnpm wrapper stopped before the build at its automatic dependency-status install attempt (ERR_PNPM_ABORTED_REMOVE_MODULES_DIR_NO_TTY). No install/config/lock changes made; exact existing installed build command passed separately. Do not claim the wrapper passed."
+    },
+    {
+      "command": "Read-only SHA256 comparison with fixed external baseline.json and original package scripts",
+      "result": "All 310 protected files and 43 original scripts unchanged; branch feat/ato-client-reliability verified"
+    }
+  ],
+  "evidence_classes": {
+    "local_scripted_subprocesses": "qualified for the directed behaviors only",
+    "built_public_library_example": "passed using two local synthetic profiles",
+    "installed_native_cli_or_local_pi_sample": "not run; final origin-owned stage",
+    "cloud_provider": "none",
+    "real_user_or_business_execution": "none",
+    "independent_review": "not run by worker; final origin-only canonical P2 review remains required"
+  },
+  "limitations": [
+    "Stage implementation only. Frozen source-loader acceptance remains scheduler/host-owned, with TAP reporter environment required by the unchanged verifier. Full inherited pnpm check/check:docs, coverage, package qualification, independent P2 review, installed-Pi loopback and own-fork branch publication remain later qualification/delivery work. No host pass or total completion is claimed.",
+    "ACP v1 has no authenticated turn/request ID on session updates. Same-session delayed activity arriving within a subsequent prompt window cannot be disambiguated; toolCorrelation remains active_session_window and all coverage remains partial. Forged _meta cannot upgrade correlation, trust, permissions or success.",
+    "The safe channel sees active-turn client/ACP reports only, not hidden native activity. Replay-suppressed, idle/setup, out-of-window and wrong-session updates are excluded. Tool counts and durations are observed tracking, not exhaustive native totals or execution duration.",
+    "Overflow, sink failure, timeout or shutdown can lose a terminal event. Runtime-cumulative dropped/sequence counters and stats must be checked. Locally resolved callbacks do not establish durable external delivery, storage or user notification.",
+    "A trusted synchronous CPU-blocking callback cannot be preempted in the same process. Async concurrency/time and retained memory are bounded; external storage and total multi-turn retention remain caller responsibility.",
+    "Existing rich event streams, raw wire observers and persisted journals remain sensitive and retain their inherited buffering/retention contracts. The safe channel does not bound or sanitize these separate rich paths.",
+    "No remote transport, v2 draft stack, native outcome reader, business validator, new provider, live integration, session migration, scheduler/controller change, original task-history mutation, Git commit/push/release or unsolicited notification was introduced."
+  ],
+  "checkpoint": "docs/fork-evidence/observability-checkpoint.md"
+}

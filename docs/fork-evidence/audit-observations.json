@@ -1,0 +1,67 @@
+{
+  "base_commit": "48c1615057ae43893f80868f81cd3ee0445eb0ae",
+  "observed_on": "2026-11-19",
+  "scope": "Synthetic local ACP subprocesses and actual source exports; no native agent or provider",
+  "environment": { "node": "24.22.1", "pnpm": "11.27.1" },
+  "commands": [
+    "pnpm run build",
+    "pnpm run build:test",
+    "node --test --test-reporter=tap --test-concurrency=1 dist-test/test/fork-audit.test.js",
+    "node dist-test/test/fixtures/fork-audit-reproduce.js"
+  ],
+  "tests": {
+    "tests": 13,
+    "pass": 13,
+    "fail": 0,
+    "cancelled": 0,
+    "skipped": 0,
+    "todo": 0,
+    "duration_ms": 11201.679167,
+    "diagnostic": "The deliberately duplicated success response after an RPC error produced an SDK unknown-request diagnostic; the turn remained failed."
+  },
+  "protocol": {
+    "offered": 1,
+    "peerReturned": 2,
+    "accepted": true,
+    "sessionCreated": true,
+    "storedProtocolVersion": 2,
+    "methodsReceived": ["initialize", "session/new"]
+  },
+  "capabilities": {
+    "beforeConnection": {
+      "controls": [
+        "session/set_mode",
+        "session/set_model",
+        "session/set_config_option",
+        "session/status"
+      ]
+    },
+    "afterConnection": {
+      "controls": [
+        "session/set_mode",
+        "session/set_model",
+        "session/set_config_option",
+        "session/status"
+      ]
+    },
+    "advertisedByFixture": { "loadSession": true },
+    "controlQualificationAttempted": false
+  },
+  "observation": {
+    "wireContainsPrompt": true,
+    "richEventsContainThought": true,
+    "richEventsContainRawInput": true,
+    "richEventsContainRawOutput": true,
+    "toolEvents": 2,
+    "uniqueToolIds": 1,
+    "pendingSinkCallsAtCompletedTurn": 9,
+    "turnStatus": "completed"
+  },
+  "unconsumedRichQueue": { "producedEvents": 512, "retainedEvents": 512 },
+  "limits": [
+    "This is a historical upstream characterization, not qualification of a fixed fork.",
+    "The observation probe used only fixed synthetic sentinels. No raw payload, prompt, thought, stderr, credential, private path or configuration is retained in this report.",
+    "The bounded 512-event queue probe demonstrates retention at that size; absence of an application-level bound is established by source inspection, not a stress or exhaustion claim.",
+    "Full inherited checks, socket checks, independent review, installed-Pi interoperability and fork publication have not been qualified by this audit."
+  ]
+}

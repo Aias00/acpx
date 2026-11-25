@@ -1,0 +1,188 @@
+{
+  "base_commit": "48c1615057ae43893f80868f81cd3ee0445eb0ae",
+  "stage": "reliability",
+  "observed_on": "2026-11-19",
+  "scope": "Actual exported in-process runtime and local synthetic stdio ACP subprocesses on Node 24.22.1 / pnpm 11.27.1. No provider, native-agent prompt, live ATO, auth or service configuration was used.",
+  "changes": [
+    {
+      "behavior": "Reject incompatible initialize protocol responses before authentication and session creation.",
+      "source": ["src/acp/client.ts", "src/errors.ts"],
+      "baseline_proof": {
+        "evidence": "docs/fork-evidence/audit-observations.json",
+        "command": "node dist-test/test/fixtures/fork-audit-reproduce.js",
+        "observed": {
+          "offered": 1,
+          "peerReturned": 2,
+          "accepted": true,
+          "sessionCreated": true
+        }
+      },
+      "fixed_proof": {
+        "command": "node --test --test-reporter=tap --test-concurrency=1 dist-test/test/fork-reliability.test.js",
+        "case": "rejects a different protocol before auth/new/prompt",
+        "observed": "Rejected with ACP_PROTOCOL_VERSION_MISMATCH; the peer received initialize only."
+      }
+    },
+    {
+      "behavior": "Add opt-in capability evidence separating implemented controls, stored advertisements and unknown qualification. Two registry profiles advertise different load support; no probes or permission grants.",
+      "source": ["src/runtime.ts", "src/runtime/assurance.ts"]
+    },
+    {
+      "behavior": "Add opt-in final and live correlated turn receipts; preserve legacy result shapes, default v1 empty completion and existing stop semantics. Native and business outcomes remain unknown; no prose or _meta authority.",
+      "source": [
+        "src/runtime/assurance.ts",
+        "src/runtime/turn-assurance.ts",
+        "src/runtime/engine/prompt-turn.ts",
+        "src/runtime/engine/manager.ts",
+        "src/acp/observed-stream.ts",
+        "src/acp/client.ts"
+      ]
+    },
+    {
+      "behavior": "Capture public turn input before asynchronous manager admission so assurance, request identity and attachments remain tied to that admission.",
+      "source": ["src/runtime.ts"],
+      "proof": "The admission mutation regression changes the caller input immediately after startTurn; both final and live receipt identities retain admitted."
+    },
+    {
+      "behavior": "Expose unsent/submitted/finished/failed/unknown delivery from actual write attempts, accepted writes and correlated RPC responses. Partial write/EOF remains ambiguous, with no replay added.",
+      "source": ["src/acp/observed-stream.ts", "src/acp/client.ts", "src/runtime/assurance.ts"]
+    },
+    {
+      "behavior": "Retain upstream exact resume, serialization, request ownership, cancellation and process cleanup. Add bounded optional cancel wait, separate requested/written/acknowledged and cleanup-attempt/settlement facts. No native-tool-stop claim or extra signal target.",
+      "source": ["src/runtime/turn-assurance.ts", "src/runtime/engine/manager.ts"]
+    },
+    {
+      "behavior": "Add separate opt-in bounded allowlisted observation sink with opaque correlation, monotonic sequence/time, tool update identity, partial/truncated/drop accounting, one in-flight call and permanent disable on async timeout. Rich event/wire/journal behavior remains sensitive and unchanged.",
+      "source": ["src/runtime/observation.ts", "src/runtime/engine/manager.ts"],
+      "baseline_proof": {
+        "evidence": "docs/fork-evidence/audit-observations.json",
+        "observed": "Existing raw wire/rich streams contained synthetic private fields; 9 async sink calls could remain pending. Those interfaces are retained for compatibility."
+      },
+      "fixed_proof": {
+        "cases": [
+          "safe sink deduplicates tool identities and excludes private bodies",
+          "never-settling bounded sink cannot hold the result or multiply calls"
+        ],
+        "observed": "Safe channel excludes private sentinels/IDs/payloads; repeated tool updates count as one tracked call. Never-settling sink gets one call, bounded retained bytes, positive drops and disabled state while turn completes."
+      }
+    }
+  ],
+  "directed_tests": {
+    "file": "test/fork-reliability.test.ts",
+    "evidence": "docs/fork-evidence/reliability-local.tap",
+    "tests": 20,
+    "pass": 20,
+    "fail": 0,
+    "cancelled": 0,
+    "skipped": 0,
+    "todo": 0,
+    "duration_ms": 15841.843417,
+    "fixture_profiles": ["resumable: loadSession=true", "basic: loadSession=false"],
+    "diagnostic": "Deliberate duplicate RPC success produces the SDK unknown-request diagnostic; the original error remains authoritative."
+  },
+  "commands": [
+    {
+      "argv": "pnpm run typecheck",
+      "result": "passed"
+    },
+    {
+      "argv": "pnpm run build",
+      "result": "passed; existing ineffective dynamic-import warning retained"
+    },
+    {
+      "argv": "pnpm run build:test",
+      "result": "passed"
+    },
+    {
+      "argv": "node --test --test-reporter=tap --test-concurrency=1 dist-test/test/fork-reliability.test.js",
+      "result": "20 passed; saved sanitized TAP"
+    },
+    {
+      "argv": "pnpm exec oxlint --type-aware --deny-warnings src scripts examples test conformance",
+      "result": "passed"
+    },
+    {
+      "argv": "pnpm run format:check",
+      "result": "passed"
+    },
+    {
+      "argv": "pnpm run check:docs",
+      "result": "passed: formatting, Markdown lint, docs-site build/link validation"
+    },
+    {
+      "argv": "node examples/runtime-assurance.mjs",
+      "result": "passed using built acpx/runtime export, source scripted peer, caller-owned file store, registry overrides and safe sink; both profiles completed and retained unknown native/business outcomes"
+    },
+    {
+      "argv": "node --test --test-concurrency=2 dist-test/test/runtime-explicit-resume.test.js dist-test/test/runtime-turn-queue.test.js dist-test/test/runtime-events.test.js dist-test/test/client-process-cleanup.test.js dist-test/test/prompt-interruption.test.js",
+      "result": "44 passed, 15 failed. Process-cleanup/inspection assertions and teardown require ps, which the worker denied with spawnSync ps EPERM. Host checks and fresh identity inspection of test-owned fixture remnants are required; no process cleanup qualification claimed."
+    },
+    {
+      "argv": "pnpm run lint",
+      "result": "Type-aware Oxlint passed, then unchanged tsx persisted-key helper failed with listen EPERM in the worker sandbox. Not repeated or weakened; original host lint/check remains required."
+    },
+    {
+      "argv": "Read-only SHA256 comparison against fixed external baseline.json and comparison of every original package script",
+      "result": "All 310 protected files and all original scripts unchanged."
+    },
+    {
+      "argv": "git diff --check",
+      "result": "passed"
+    }
+  ],
+  "limitations": [
+    "Frozen source-loader/socket acceptance and complete inherited check/coverage/mutation remain host-owned and are not claimed passed. No acceptance verifier or external baseline was changed or executed by worker.",
+    "Safe observation has only the two directed smoke/fault cases here. The separately assigned observability stage still requires its >=8-case suite/report and deeper missing/drop/truncation/failing-sink qualification.",
+    "No trusted native receipt source or independent business validator exists in this stage. No strict business-success policy is silently applied to ordinary v1 completion.",
+    "An accepted pipe write is not a peer/business acknowledgement. Ambiguous effects cannot safely be replayed and are not exactly-once business execution.",
+    "Owned close settlement does not certify hidden native tools stopped. Existing process identity/descendant tests need host ps access; stale/wrong identity protections are retained rather than replaced.",
+    "Safe callbacks are trusted local JavaScript and must return promptly; a synchronous CPU loop cannot be preempted in-process. External sink storage retention is caller responsibility. The rich event queue remains the inherited sensitive opt-in path.",
+    "No v2 draft, remote transport, cloud qualification, native-session portability, checkpoint reconstruction or full orchestration was implemented.",
+    "Independent review, installed-Pi numeric-loopback sample, package qualification, own-fork feature-branch publication and total-task completion remain later origin-owned work. No Git commit/push/release or live activation occurred."
+  ],
+  "checkpoint": "docs/fork-evidence/reliability-checkpoint.md",
+  "retry_diagnosis": {
+    "previous_host_result": "All 20 source-directed cases passed with no failures, skips, cancellations or todos. Frozen acceptance rejected the output because Node 24 selected the spec reporter (Unicode summary), while acceptance parses TAP summary comments.",
+    "host_log": "/Volumes/data/.build-logs/acpx-fork-hardening-20261119/reliability-1795134589821365000.log",
+    "correction": "Select the built-in TAP reporter via inherited NODE_OPTIONS=--test-reporter=tap when the host runs the unchanged frozen acceptance command. This selects output formatting only; it changes no test, expected result, minimum count, exit status, verifier or protected configuration.",
+    "source_changes_required": false,
+    "local_verification": {
+      "compile_command": "node_modules/.bin/tsc -p tsconfig.test.json",
+      "test_command": "NODE_OPTIONS=--test-reporter=tap node --test --test-concurrency=1 dist-test/test/fork-reliability.test.js",
+      "evidence": "docs/fork-evidence/reliability-retry.tap",
+      "tests": 20,
+      "pass": 20,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0,
+      "duration_ms": 15821.122333,
+      "typecheck": "node_modules/.bin/tsc --noEmit: passed",
+      "lint": "node_modules/.bin/oxlint --type-aware --deny-warnings src scripts examples test conformance: passed",
+      "protected_files": 310,
+      "protected_files_and_original_scripts": "All hashes and scripts match the fixed baseline."
+    },
+    "status": "ready_for_checks; host source-loader acceptance and full inherited checks remain pending; no host acceptance pass claimed",
+    "repeated_host_result": {
+      "log": "/Volumes/data/.build-logs/acpx-fork-hardening-20261119/reliability-1795134799369761000.log",
+      "observed": "All 20 cases passed again, but Node emitted spec summary lines. The frozen verifier requires TAP summary comments; its absent-case error does not identify a missing or failing behavior test."
+    },
+    "current_worker_recheck": {
+      "command": "NODE_OPTIONS=--test-reporter=tap node --test --test-concurrency=1 dist-test/test/fork-reliability.test.js",
+      "evidence": "docs/fork-evidence/reliability-worker-recheck.tap",
+      "tests": 20,
+      "pass": 20,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0,
+      "duration_ms": 15880.161791,
+      "typecheck_and_test_compilation": "node_modules/.bin/tsc --noEmit and node_modules/.bin/tsc -p tsconfig.test.json both passed",
+      "type_aware_lint": "node_modules/.bin/oxlint --type-aware --deny-warnings src scripts examples test conformance passed",
+      "format": "Explicit Oxfmt check for all 17 affected implementation/test/API/report/checkpoint files passed",
+      "integrity": "310 protected files and 43 original scripts match baseline; source branch verified; git diff --check passed",
+      "host_action": "Set NODE_OPTIONS=--test-reporter=tap in the frozen acceptance process environment, preserving any other required Node options. Do not edit the verifier, protected workspace settings, package scripts, or test assertions.",
+      "qualification": "Compiled directed runtime/subprocess cases only. Source-loader acceptance and full inherited host checks remain pending."
+    }
+  }
+}

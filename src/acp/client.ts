@@ -44,6 +44,7 @@ import {
 } from "../async-control.js";
 import {
   AgentDisconnectedError,
+  AcpProtocolVersionError,
   AgentSpawnError,
   AgentStartupError,
   AuthPolicyError,
@@ -71,6 +72,7 @@ import type {
   AcpProcessLaunch,
   AcpProcessLaunchScope,
   AcpProcessStarted,
+  AcpPromptDeliveryEvent,
   NonInteractivePermissionPolicy,
   PermissionMode,
   PermissionStats,
@@ -130,7 +132,7 @@ import {
 import {
   AcpMessageLimitError,
   createNdJsonMessageStream,
-  readMaxAcpMessageBytes,
+  resolveMaxAcpMessageBytes,
 } from "./ndjson-stream.js";
 import { observeAcpStream } from "./observed-stream.js";
 import { ProcessDescendants } from "./process-descendants.js";
@@ -294,6 +296,7 @@ type ActivePromptState = {
   promise?: Promise<PromptResponse>;
   cancelPromise?: Promise<void>;
   onRequestWritten?: () => Promise<void> | void;
+  onDelivery?: (event: AcpPromptDeliveryEvent) => void;
   authority?: AcpControlAuthority;
   admissionFailure?: { error: unknown };
   elicitationHandler?: AcpElicitationHandler;
@@ -429,6 +432,7 @@ export class AcpClient {
   private readonly permissionAbortControllers = new Map<string, AbortController>();
   private closing = false;
   private closeTask?: Promise<void>;
+  private lastCloseTimedOut = false;
   // Bumped by close() so a start() still launching can tell it was abandoned.
   private closeEpoch = 0;
   private agentStartedAt?: string;
@@ -481,6 +485,10 @@ export class AcpClient {
 
   getAgentPid(): number | undefined {
     return this.agent?.pid ?? this.lastKnownPid;
+  }
+
+  didLastCloseTimeOut(): boolean {
+    return this.lastCloseTimedOut;
   }
 
   getPermissionStats(): PermissionStats {
@@ -635,7 +643,8 @@ export class AcpClient {
       return;
     }
     const epoch = await this.waitForPreviousClose();
-    const maxMessageBytes = readMaxAcpMessageBytes();
+    this.lastCloseTimedOut = false;
+    const maxMessageBytes = resolveMaxAcpMessageBytes(this.options.maxMessageBytes);
     const launch = await this.resolveAgentLaunchPlan(epoch, authority);
     this.assertCommandProbeActive(epoch, authority);
     this.logAgentLaunch(launch);
@@ -737,7 +746,9 @@ export class AcpClient {
       this.options.agentCommand,
       this.options.agentArgv,
     );
-    const resolvedBuiltInLaunch = resolveBuiltInAgentLaunch(this.options.agentCommand);
+    const resolvedBuiltInLaunch = resolveBuiltInAgentLaunch(this.options.agentCommand, {
+      allowPackageExecFallback: this.options.allowPackageExecFallback,
+    });
     const spawnCommand = resolvedBuiltInLaunch?.command ?? configuredCommand.command;
     const spawnOptions = buildAgentSpawnOptions(
       this.options.cwd,
@@ -865,11 +876,14 @@ export class AcpClient {
     await this.options.processLifecycle?.onBeforeSpawn?.(launch);
     assertControlAuthority(authority);
 
+    const ownProcessGroup =
+      process.platform !== "win32" && this.options.processGroupCleanup === true;
     let spawnedChild: ChildProcessByStdio<Writable, Readable, Readable>;
     try {
       spawnedChild = spawn(launch.command, [...launch.args], {
         ...plan.spawnOptions,
         windowsVerbatimArguments: prepared.windowsVerbatimArguments,
+        ...(ownProcessGroup ? { detached: true } : {}),
       });
       await waitForSpawn(spawnedChild);
     } catch (error) {
@@ -883,7 +897,7 @@ export class AcpClient {
     }
 
     const child = requireAgentStdio(spawnedChild);
-    this.agentDescendants.set(child, new ProcessDescendants(child));
+    this.agentDescendants.set(child, new ProcessDescendants(child, { ownProcessGroup }));
     const pid = child.pid;
     if (pid === undefined) {
       const spawnError = new AgentSpawnError(
@@ -1132,6 +1146,9 @@ export class AcpClient {
     const initialized = launch.geminiAcp
       ? await withTimeout(initializePromise, resolveGeminiAcpStartupTimeoutMs())
       : await initializePromise;
+    if (initialized.protocolVersion !== PROTOCOL_VERSION) {
+      throw new AcpProtocolVersionError(PROTOCOL_VERSION, initialized.protocolVersion);
+    }
     await this.authenticateIfRequired(connection, initialized.authMethods ?? []);
     return initialized;
   }
@@ -1173,6 +1190,9 @@ export class AcpClient {
   }): ReturnType<typeof observeAcpStream> {
     return observeAcpStream(base, {
       onMessage: (direction, message) => {
+        if (direction === "inbound") {
+          this.observePromptResponse(message);
+        }
         this.eventHandlers.onAcpOutputMessage?.(direction, message);
         this.eventHandlers.onAcpMessage?.(direction, message);
       },
@@ -1180,6 +1200,8 @@ export class AcpClient {
       bindPromptOwner: (owner) => this.bindPromptOwner(owner),
       assertPromptActive: (active) => this.assertPromptActive(active),
       onPromptRequestWritten: (active, owner) => this.onPromptRequestWritten(active, owner),
+      onPromptRequestWriting: (active, owner) =>
+        this.observePromptDelivery(active, { type: "dispatching", ...owner }),
     });
   }
 
@@ -1322,6 +1344,7 @@ export class AcpClient {
     onElicitation?: AcpElicitationHandler,
     onPermissionRequest?: AcpPermissionHandler,
     authority?: AcpControlAuthority,
+    onDelivery?: (event: AcpPromptDeliveryEvent) => void,
   ): Promise<PromptResponse> {
     const connection = this.getConnection();
     const normalizedPrompt = this.normalizePromptForAgent(prompt);
@@ -1337,6 +1360,7 @@ export class AcpClient {
       onPermissionRequest,
       authority,
     );
+    activePrompt.onDelivery = onDelivery;
 
     try {
       const promptPromise = this.runConnectionRequest(
@@ -1417,10 +1441,34 @@ export class AcpClient {
     if (active.requestId !== owner.requestId || active.sessionId !== owner.sessionId) {
       return;
     }
+    this.observePromptDelivery(active, { type: "submitted", ...owner });
     try {
       void Promise.resolve(active.onRequestWritten?.()).catch(() => {});
     } catch {
       // Readiness observation must not own a request accepted by the transport.
+    }
+  }
+
+  private observePromptDelivery(active: ActivePromptState, event: AcpPromptDeliveryEvent): void {
+    try {
+      active.onDelivery?.(event);
+    } catch {
+      // Evidence observation cannot own transport progress or change its outcome.
+    }
+  }
+
+  private observePromptResponse(message: AnyMessage): void {
+    if (!("id" in message) || "method" in message) {
+      return;
+    }
+    const active = this.pendingPromptOwners.find((owner) => owner.requestId === message.id);
+    if (active) {
+      this.observePromptDelivery(active, {
+        type: "response",
+        requestId: message.id,
+        sessionId: active.sessionId,
+        ...("error" in message ? { errorCode: message.error.code } : {}),
+      });
     }
   }
 
@@ -1644,6 +1692,9 @@ export class AcpClient {
     }
     permissionController?.abort();
     await cancellation;
+    if (active) {
+      this.observePromptDelivery(active, { type: "cancel_written" });
+    }
   }
 
   async closeSession(sessionId: string): Promise<void> {
@@ -1854,6 +1905,7 @@ export class AcpClient {
     const descendants = this.agentDescendants.get(child);
     const deadline = performance.now() + AGENT_CLEANUP_BUDGET_MS;
     const stdinCloseGraceMs = resolveAgentCloseAfterStdinEndMs(this.options.agentCommand);
+    let settled = false;
     try {
       if (descendants) {
         await descendants.capture(Math.max(1, deadline - performance.now()));
@@ -1869,15 +1921,38 @@ export class AcpClient {
         AGENT_CLOSE_TERM_GRACE_MS,
         deadline,
       );
-      if (!exited) {
+      if (exited) {
+        settled = true;
+      } else {
         this.log("agent processes did not exit after SIGTERM; forcing SIGKILL");
-        await this.signalAgentAndDescendants(child, "SIGKILL", AGENT_CLOSE_KILL_GRACE_MS, deadline);
+        settled = await this.signalAgentAndDescendants(
+          child,
+          "SIGKILL",
+          AGENT_CLOSE_KILL_GRACE_MS,
+          deadline,
+        );
       }
     } finally {
+      if (this.didCleanupFail(child, descendants, settled)) {
+        this.lastCloseTimedOut = true;
+      }
       descendants?.retire();
       // Stdio must not keep acpx alive after teardown, even if an OS query failed.
       this.detachAgentHandles(child, isChildProcessRunning(child));
     }
+  }
+
+  private didCleanupFail(
+    child: ChildProcess,
+    descendants: ProcessDescendants | undefined,
+    settled: boolean,
+  ): boolean {
+    return (
+      !settled ||
+      isChildProcessRunning(child) ||
+      Boolean(descendants?.hasTrackedProcesses()) ||
+      Boolean(descendants?.hasUnresolvedOwnership())
+    );
   }
 
   private endAgentStdin(child: ChildProcess): void {

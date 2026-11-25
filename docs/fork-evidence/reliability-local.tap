@@ -1,0 +1,131 @@
+TAP version 13
+# Subtest: fork reliability: rejects a different protocol before auth/new/prompt
+ok 1 - fork reliability: rejects a different protocol before auth/new/prompt
+  ---
+  duration_ms: 141.9975
+  type: 'test'
+  ...
+# Subtest: fork reliability: resumable advertisement is separate from local methods and qualification
+ok 2 - fork reliability: resumable advertisement is separate from local methods and qualification
+  ---
+  duration_ms: 36.519166
+  type: 'test'
+  ...
+# Subtest: fork reliability: basic advertisement is separate from local methods and qualification
+ok 3 - fork reliability: basic advertisement is separate from local methods and qualification
+  ---
+  duration_ms: 29.275833
+  type: 'test'
+  ...
+# Subtest: fork reliability: legacy empty v1 result remains a completed turn
+ok 4 - fork reliability: legacy empty v1 result remains a completed turn
+  ---
+  duration_ms: 1047.161042
+  type: 'test'
+  ...
+# Subtest: fork reliability: normal stop has transport receipt and unknown backend/business outcomes
+ok 5 - fork reliability: normal stop has transport receipt and unknown backend/business outcomes
+  ---
+  duration_ms: 1066.970583
+  type: 'test'
+  ...
+# Subtest: fork reliability: assurance and request identity are captured at public admission
+ok 6 - fork reliability: assurance and request identity are captured at public admission
+  ---
+  duration_ms: 1064.93025
+  type: 'test'
+  ...
+# Got response to unknown request 2
+# Subtest: fork reliability: explicit RPC error dominates duplicate success
+ok 7 - fork reliability: explicit RPC error dominates duplicate success
+  ---
+  duration_ms: 60.409084
+  type: 'test'
+  ...
+# Subtest: fork reliability: model prose and _meta cannot manufacture native evidence
+ok 8 - fork reliability: model prose and _meta cannot manufacture native evidence
+  ---
+  duration_ms: 1065.841416
+  type: 'test'
+  ...
+# Subtest: fork reliability: revoked authority is proven unsent
+ok 9 - fork reliability: revoked authority is proven unsent
+  ---
+  duration_ms: 59.4125
+  type: 'test'
+  ...
+# Subtest: fork reliability: submitted is not a peer receipt; EOF remains ambiguous with no replay
+ok 10 - fork reliability: submitted is not a peer receipt; EOF remains ambiguous with no replay
+  ---
+  duration_ms: 31.678083
+  type: 'test'
+  ...
+# Subtest: fork reliability: cold explicit resume keeps exact backend session and project
+ok 11 - fork reliability: cold explicit resume keeps exact backend session and project
+  ---
+  duration_ms: 1152.670375
+  type: 'test'
+  ...
+# Subtest: fork reliability: failed exact resume never replaces or dispatches
+ok 12 - fork reliability: failed exact resume never replaces or dispatches
+  ---
+  duration_ms: 61.944292
+  type: 'test'
+  ...
+# Subtest: fork reliability: same-session queued turn remains unsent until the active turn settles
+ok 13 - fork reliability: same-session queued turn remains unsent until the active turn settles
+  ---
+  duration_ms: 2077.514458
+  type: 'test'
+  ...
+# Subtest: fork reliability: cancel-ignored distinguishes cancel intent/write/acknowledgement
+ok 14 - fork reliability: cancel-ignored distinguishes cancel intent/write/acknowledgement
+  ---
+  duration_ms: 1085.318209
+  type: 'test'
+  ...
+# Subtest: fork reliability: cancel-ack distinguishes cancel intent/write/acknowledgement
+ok 15 - fork reliability: cancel-ack distinguishes cancel intent/write/acknowledgement
+  ---
+  duration_ms: 1072.174791
+  type: 'test'
+  ...
+# Subtest: fork reliability: queued cancellation is unsent without a native acknowledgement
+ok 16 - fork reliability: queued cancellation is unsent without a native acknowledgement
+  ---
+  duration_ms: 1069.25525
+  type: 'test'
+  ...
+# Subtest: fork reliability: a settled turn cannot cancel a later owner
+ok 17 - fork reliability: a settled turn cannot cancel a later owner
+  ---
+  duration_ms: 2075.885
+  type: 'test'
+  ...
+# Subtest: fork reliability: blocked writes bound cancel wait and owned shutdown without certifying unsent
+ok 18 - fork reliability: blocked writes bound cancel wait and owned shutdown without certifying unsent
+  ---
+  duration_ms: 210.14275
+  type: 'test'
+  ...
+# Subtest: fork reliability: safe sink deduplicates tool identities and excludes private bodies
+ok 19 - fork reliability: safe sink deduplicates tool identities and excludes private bodies
+  ---
+  duration_ms: 1080.710209
+  type: 'test'
+  ...
+# Subtest: fork reliability: never-settling bounded sink cannot hold the result or multiply calls
+ok 20 - fork reliability: never-settling bounded sink cannot hold the result or multiply calls
+  ---
+  duration_ms: 1101.067541
+  type: 'test'
+  ...
+1..20
+# tests 20
+# suites 0
+# pass 20
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 15841.843417

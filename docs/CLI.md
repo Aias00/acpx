@@ -736,6 +736,12 @@ Per-tool policy:
 | `5`   | Permission denied in this turn (permission requested, none approved, and at least one denied/cancelled) |
 | `130` | Interrupted (`SIGINT`/`SIGTERM`)                                                                        |
 
+For prompts, a normal v1 stop and exit `0` describe successful ACP turn handling;
+they do not independently validate a business task or hidden native effects.
+The client offers ACP v1 and rejects a different returned protocol version before
+authentication or session creation (`ACP_PROTOCOL_VERSION_MISMATCH`). In-process
+embedders can separately opt into [runtime assurance](runtime-assurance.md).
+
 ## Environment variables
 
 `ACPX_CLAUDE_INCLUDE_USER_SETTINGS=1` makes built-in `claude` sessions include

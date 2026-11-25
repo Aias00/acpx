@@ -112,6 +112,8 @@ Permission modes range from read approval to explicit deny or approve-all polici
 
 For multi-step work, `acpx flow run` executes TypeScript workflows that combine ACP turns with deterministic actions, decisions, computation, and checkpoints. The package also exports `acpx/runtime` and `acpx/flows` for applications that need session and workflow primitives without shelling out.
 
+In-process embedders can opt into [turn assurance and bounded sanitized observation](docs/runtime-assurance.md) while retaining the existing turn-result contract. ACP completion describes a transport turn; backend outcome and independent business validation require separate evidence.
+
 Use [`createSharedAcpRuntime()`](docs/shared-sessions.md) when an application and CLI processes need to share one local session owner.
 
 Start with the [flows guide](docs/flows.md), then use the [examples](examples/flows/README.md) and [architecture notes](docs/2026-03-25-acpx-flows-architecture.md) for deeper integrations.

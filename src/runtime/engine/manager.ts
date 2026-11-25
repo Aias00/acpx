@@ -32,6 +32,7 @@ import { setDesiredModeId } from "../../session/mode-preference.js";
 import { applyRequestedModelIfAdvertised } from "../../session/model-application.js";
 import { advertisedModelState } from "../../session/model-state.js";
 import type { ClientOperation, SessionRecord, SessionResumePolicy } from "../../types.js";
+import { SafeObserver } from "../observation.js";
 import type {
   AcpRuntimeEvent,
   AcpRuntimeHandle,
@@ -45,6 +46,7 @@ import type {
 import { AcpRuntimeError } from "../public/errors.js";
 import { runtimeEventFromMessage } from "../public/events.js";
 import { probeRuntime, type RuntimeHealthReport } from "../public/probe.js";
+import { RuntimeTurnAssurance, boundedCancel } from "../turn-assurance.js";
 import { withConnectedSession } from "./connected-session.js";
 import { resolveSupportedConfigOptionId } from "./controls.js";
 import {
@@ -213,6 +215,7 @@ type RuntimeSessionTask = {
 };
 
 type RuntimeTurnTask = {
+  assurance: RuntimeTurnAssurance;
   input: AcpRuntimeTurnInput & { sessionMode: "persistent" | "oneshot" };
   promptInput: PromptInput | string;
   queue: AsyncEventQueue;
@@ -337,6 +340,7 @@ async function createOrLoadRuntimeSession(
 }
 
 export class AcpRuntimeManager {
+  private readonly safeObserver?: SafeObserver;
   private readonly exactSessionRecordIds = new Set<string>();
   private readonly activeControllers = new Map<string, ActiveSessionController>();
   private readonly controlSessionRecords = new Map<string, RuntimeControlSession>();
@@ -365,7 +369,15 @@ export class AcpRuntimeManager {
   constructor(
     private readonly options: AcpRuntimeOptions,
     private readonly deps: AcpRuntimeManagerDeps = {},
-  ) {}
+  ) {
+    this.safeObserver = options.observation
+      ? new SafeObserver({ ...options.observation })
+      : undefined;
+  }
+
+  getObservationStats() {
+    return this.safeObserver?.stats();
+  }
 
   private createClient(options: ConstructorParameters<typeof AcpClient>[0]): AcpClient {
     this.assertOpen();
@@ -376,6 +388,8 @@ export class AcpRuntimeManager {
       agentProcessEnv: this.options.agentProcessEnv,
       agentProcessEnvAllow: this.options.agentProcessEnvAllow,
       agentProcessEnvBlock: this.options.agentProcessEnvBlock,
+      maxMessageBytes: this.options.maxMessageBytes,
+      processGroupCleanup: this.options.processGroupCleanup,
       processLifecycle: {
         ...options.processLifecycle,
         onBeforeSpawn: async (launch) => {
@@ -417,7 +431,7 @@ export class AcpRuntimeManager {
   shutdown(): Promise<void> {
     if (!this.shutdownTask) {
       this.shuttingDown = true;
-      this.shutdownTask = this.shutdownOwnedClients();
+      this.shutdownTask = this.shutdownOwnedClients().finally(() => this.safeObserver?.close());
     }
     return this.shutdownTask;
   }
@@ -518,7 +532,12 @@ export class AcpRuntimeManager {
       pendingSessionUpdates: [],
     };
     input.client.setEventHandlers({
-      onAcpMessage: this.observeAcpMessage,
+      onAcpMessage: (direction, message) => {
+        if (direction === "inbound") {
+          owner.activeTurn?.task.assurance.sessionMessage(message);
+        }
+        this.observeAcpMessage(direction, message);
+      },
       onSessionUpdate: (notification) => this.routeOwnedSessionUpdate(owner, notification),
       onClientOperation: (operation) => this.routeOwnedClientOperation(owner, operation),
     });
@@ -1272,6 +1291,7 @@ export class AcpRuntimeManager {
     }
     const queue = new AsyncEventQueue();
     const result = createDeferred<AcpRuntimeTurnResult>();
+    const assurance = new RuntimeTurnAssurance(input, this.safeObserver);
     const promptStarted = createDeferred<void>();
     void promptStarted.promise.catch(() => {});
     const sessionReady = createDeferred<void>();
@@ -1289,6 +1309,7 @@ export class AcpRuntimeManager {
         return;
       }
       resultSettled = true;
+      assurance.settle(next);
       result.resolve(next);
     };
 
@@ -1302,6 +1323,7 @@ export class AcpRuntimeManager {
     };
 
     const requestCancel = async (): Promise<boolean> => {
+      assurance.requestCancel(state.turnActive);
       if (state.activeController) {
         return await state.activeController.requestCancelActivePrompt();
       }
@@ -1323,6 +1345,7 @@ export class AcpRuntimeManager {
       input.handle.acpxRecordId ?? input.handle.sessionKey,
       async () =>
         this.runRuntimeTurnTask({
+          assurance,
           input,
           promptInput,
           queue,
@@ -1340,8 +1363,9 @@ export class AcpRuntimeManager {
       promptStarted: promptStarted.promise,
       events: queue.iterate(),
       result: result.promise,
-      cancel: async () => {
-        await requestCancel();
+      ...assurance.fields,
+      cancel: async (args) => {
+        await boundedCancel(requestCancel, args?.timeoutMs);
       },
       closeStream: async () => {
         closeStream();
@@ -1378,6 +1402,7 @@ export class AcpRuntimeManager {
           terminalResult = { status: "cancelled", stopReason: "cancelled" };
         } else {
           const response = await this.runRuntimePrompt(task, turn, sessionId);
+          task.assurance.stopReason(response.stopReason);
           this.updateCompletedRuntimeTurn(turn);
           terminalResult = {
             status: response.stopReason === "cancelled" ? "cancelled" : "completed",
@@ -1416,6 +1441,7 @@ export class AcpRuntimeManager {
       conversation: turn.conversation,
       promptMessageId: turn.promptMessageId,
       onPromptRequestWritten: () => task.promptStarted.resolve(),
+      onDelivery: (event) => task.assurance.observe(event),
       onElicitation: task.input.onElicitation,
       onPermissionRequest: task.input.onPermissionRequest,
       authority: task.input,
@@ -1774,6 +1800,7 @@ export class AcpRuntimeManager {
     if (!task.state.pendingCancel && !task.input.signal?.aborted) {
       return false;
     }
+    task.assurance.requestCancel(true);
     task.state.pendingCancel = false;
     task.promptStarted.reject(new Error("ACP turn cancelled before prompt submission."));
     return true;
@@ -1827,7 +1854,10 @@ export class AcpRuntimeManager {
       this.discardRetainedRuntimeTurnOwner(turn);
       pooled = false;
     }
+    task.assurance.cleanupStart(turn !== undefined, pooled);
     const closeAttempt = await settleAttempt(async () => this.closeRuntimeTurnClient(turn, pooled));
+    const closeTimedOut = !pooled && Boolean(turn?.owner.client.didLastCloseTimeOut?.());
+    task.assurance.cleanupEnd(turn !== undefined, pooled, closeAttempt.ok, closeTimedOut);
     this.cleanupRuntimeTurn(task, turn);
     failure ??= firstFailedAttempt([closeAttempt]);
     if (failure) {

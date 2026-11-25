@@ -1,0 +1,182 @@
+{
+  "base_commit": "48c1615057ae43893f80868f81cd3ee0445eb0ae",
+  "stage": "audit",
+  "observed_on": "2026-11-19",
+  "implementation_status": "Audit and additive local fixtures only; production source unchanged",
+  "method": "Read AGENTS.md, VISION.md, CONTRIBUTING.md, docs/ato-fork-task.md and the fixed external baseline/verifier; trace actual client/runtime/CLI paths; compile with existing scripts and exercise actual exports through a bounded synthetic stdio ACP subprocess.",
+  "classification_scope": "upstream_satisfied identifies the named safety invariant, not completion of every fork requirement in that category. backend_limit identifies missing backend/business evidence, not a client regression. gap_reproduced requires a concrete local observation.",
+  "findings": [
+    {
+      "category": "capabilities",
+      "status": "gap_reproduced",
+      "reason": "The actual AcpClient offered protocolVersion 1, accepted a peer response with protocolVersion 2, saved 2 as initializeResult.protocolVersion and sent session/new successfully. initializeProtocolConnection awaits a response and proceeds to authentication without checking compatibility. Separately, getCapabilities returns the same four local controls before any peer connection and after a peer advertising only loadSession; the existing list is a local-method inventory, not proof of peer support or qualification.",
+      "source_locations": [
+        "src/acp/client.ts:1119-1136",
+        "src/acp/client.ts:501-514",
+        "src/runtime.ts:314-323",
+        "src/runtime/engine/controls.ts:20-31"
+      ],
+      "upstream_semantics": "The client uses the SDK v1 entrypoint and sends PROTOCOL_VERSION. supportsLoadSession/supportsResumeSession/supportsCloseSession/supportsListSessions read peer advertisements. capabilitiesFromRecord always returns local controls and optionally saved advertised config-option IDs. An unavailable config catalog is not proof of no support; advertised catalogs gate keys and retain the thinking-to-effort compatibility alias.",
+      "compatibility_plan": "Reject an incompatible returned version before authentication, session creation or prompt dispatch, retaining normal initialization cleanup. Keep v1 behavior and the legacy controls/configOptionKeys snapshot. Add an explicit optional assurance view that separates local method availability, peer advertisements with their source/freshness, and qualified evidence. Unknown is distinct from supported, unsupported or permission; do not probe controls or grant tools merely by querying capabilities.",
+      "residual_limits": "No v2 draft or remote transport implementation. No generic ACP capability field proves native model/tool behavior. The fixture did not invoke the advertised controls.",
+      "evidence": [
+        "src/acp/client.ts",
+        "src/runtime.ts",
+        "src/runtime/engine/controls.ts",
+        "test/fixtures/fork-audit-agent.ts",
+        "test/fixtures/fork-audit-reproduce.ts",
+        "docs/fork-evidence/audit-observations.json"
+      ]
+    },
+    {
+      "category": "completion",
+      "status": "backend_limit",
+      "reason": "A synthetic peer returned end_turn with no text and no business-effect file; the public runtime correctly returned a completed transport turn. A correlated RPC error followed by a duplicate success stayed failed. Model text containing ERROR and peer _meta claiming nativeOutcome=failed/trusted=true did not become authoritative native outcome evidence. v1 stopReason and arbitrary peer metadata cannot independently certify business completion, and the audited code has no trusted native-outcome receipt source.",
+      "source_locations": [
+        "src/runtime/public/contract.ts:346-374",
+        "src/runtime/engine/manager.ts:1356-1401",
+        "src/runtime/engine/prompt-turn.ts:85-163",
+        "src/runtime/engine/turn.ts:117-135",
+        "src/session/execution/runtime.ts:234-252"
+      ],
+      "upstream_semantics": "A normal prompt response maps to completed except cancelled; thrown ACP/permission/transport errors map to failed. _meta is forwarded, not authenticated. result waits for checkpoint/finalization; runTurn is the compatibility terminal-event adapter. Timeout recovery uses an actually settled prompt response found while draining, not output/prose as evidence of success. Ordinary empty v1 completion is legal and does not require an optional native receipt.",
+      "compatibility_plan": "Preserve default legacy result shapes and CLI exit semantics as turn results. Add opt-in assurance separating transport completion, backend outcome and independent business validation; absent evidence remains unknown. Explicit correlated ACP errors must dominate a later stop. Any native evidence reader must be explicit, narrowly scoped, trusted and correlated to this backend/session/request/turn; never trust arbitrary _meta, prose or error-message regex. Strict opt-in policy can require evidence without making ordinary legacy v1 turns fail.",
+      "residual_limits": "The client cannot invent native backend receipts or independently validate business effects. No real backend/cloud outcome was tested; native evidence support remains unqualified until a separately tested trusted source exists.",
+      "evidence": [
+        "src/runtime/public/contract.ts",
+        "src/runtime/engine/manager.ts",
+        "src/runtime/engine/prompt-turn.ts",
+        "src/runtime/engine/turn.ts",
+        "src/session/execution/runtime.ts",
+        "test/fork-audit.test.ts",
+        "test/fixtures/fork-audit-agent.ts",
+        "docs/fork-evidence/audit-observations.json"
+      ]
+    },
+    {
+      "category": "recovery",
+      "status": "upstream_satisfied",
+      "reason": "A cold explicit resume kept the same local record and backend session and sent session/load with that exact backend ID and the saved project. When that load returned -32603, the turn failed before prompt dispatch with no second session/new. This verifies the strict explicit-resume invariant already implemented upstream; it is not a reason to add another session recovery framework.",
+      "source_locations": [
+        "src/runtime/engine/reuse-policy.ts:4-29",
+        "src/runtime/engine/manager.ts:148-150",
+        "src/runtime/engine/manager.ts:1731-1753",
+        "src/runtime/engine/reconnect.ts:161-179",
+        "src/runtime/engine/reconnect.ts:794-868",
+        "src/runtime/engine/reconnect.ts:913-963"
+      ],
+      "upstream_semantics": "Persistent runtime mode requests same-session-only. A retained live client is reused; otherwise session/resume is preferred when advertised, then session/load using record.acpSessionId and record.cwd. strictResume never falls back. Imported records also require continuity. Record reuse compares cwd, command, argv and requested resume ID. The documented non-strict exception allows a genuinely unprompted locally-new record to replace a failed internal-error load; allow-new/oneshot and explicit prepareFreshSession are separate lifecycle policies. Desired configuration replay and rollback/acknowledgement handling already exist.",
+      "compatibility_plan": "Retain exact resume, configuration replay, authority checks, serialization and intentional untargeted/reset fallback semantics. Add directed regression coverage rather than new recovery machinery. Any explicit checkpoint reconstruction must identify a new session and its source/provenance and must not claim native continuation or transfer hidden agent context. Reattachment through a new runtime must supply the exact resume constraint again as documented.",
+      "residual_limits": "A backend that cannot load/resume the exact native session must fail continuity clearly. This fixture qualifies only the advertised session/load path; inherited tests cover more resume/configuration variants and still require the unchanged full host checks.",
+      "evidence": [
+        "src/runtime/engine/reuse-policy.ts",
+        "src/runtime/engine/reconnect.ts",
+        "src/runtime/engine/manager.ts",
+        "test/fork-audit.test.ts",
+        "test/runtime-explicit-resume.test.ts",
+        "test/runtime-replay-authority.test.ts",
+        "docs/fork-evidence/audit-observations.json"
+      ]
+    },
+    {
+      "category": "delivery",
+      "status": "upstream_satisfied",
+      "reason": "After promptStarted resolved, the synthetic peer recorded one prompt, wrote one synthetic effect and exited without a response; the runtime failed the turn and did not replay it. A throwing host assertActive dispatched zero prompts. Two turns on the same runtime session produced distinct RPC request IDs on the same backend session and serialized. These preserve existing safety behavior; the legacy public API still lacks a single explicit delivery-certainty snapshot.",
+      "source_locations": [
+        "src/acp/observed-stream.ts:64-84",
+        "src/acp/client.ts:1318-1425",
+        "src/runtime/public/contract.ts:362-374",
+        "src/runtime/engine/manager.ts:1319-1348",
+        "src/session/execution/runtime.ts:450-477",
+        "src/session/execution/runtime.ts:1002-1058",
+        "src/acp/error-normalization.ts:232-250"
+      ],
+      "upstream_semantics": "The outbound observation occurs before authority verification and transport write; it is not delivery evidence. promptStarted resolves only after the underlying writer accepts the exact prompt request. That means submitted, not peer receipt, execution or business success. Result failure alone does not distinguish definitely-unsent from ambiguous dispatch. The in-process runtime has no prompt replay loop. The CLI has explicit bounded promptRetries (default zero), limited to structured -32603/-32700 failures without observed side effects; timeout/non-ACP crash is not retryable and unexpected process exit suppresses retry. CLI queue admission, leases and turn ownership are separate from in-process runtime serialization.",
+      "compatibility_plan": "Preserve promptStarted, per-session ordering, queue custody and no automatic replay on EOF/crash/ambiguous delivery. Add opt-in public delivery evidence for known-unsent, submitted, finished, failed and unknown outcomes, correlated to host request and native RPC/session IDs. A write rejection after possible partial dispatch remains unknown; only proven pre-write authority/admission rejection certifies unsent. Keep configured retry behavior explicit and do not broaden it into recovery replay or claim exactly-once side effects.",
+      "residual_limits": "An accepted pipe write is not a backend/business acknowledgement. No cross-process or socket qualification is claimed by the in-process fixture. Native side effects invisible to ACP remain unknown; observed lack of side effects is not proof of exactly-once execution.",
+      "evidence": [
+        "src/acp/observed-stream.ts",
+        "src/acp/client.ts",
+        "src/runtime/engine/manager.ts",
+        "src/session/execution/runtime.ts",
+        "src/session/turn-ownership.ts",
+        "src/acp/error-normalization.ts",
+        "test/fork-audit.test.ts",
+        "test/prompt-retry.test.ts",
+        "test/queue-control-persistence.test.ts",
+        "docs/fork-evidence/audit-observations.json"
+      ]
+    },
+    {
+      "category": "cancellation",
+      "status": "upstream_satisfied",
+      "reason": "The fixture ignored session/cancel: cancel() resolved after sending it while the turn remained unsettled; a later end_turn stayed completed. A different fixture returned stopReason=cancelled, which produced a cancelled result. The existing API does not claim that the notification proves native tools stopped. Upstream already owns process cleanup and identity/custody guards; those should be preserved, not replaced by PID-only killing.",
+      "source_locations": [
+        "src/acp/client.ts:1619-1650",
+        "src/acp/client.ts:1679-1725",
+        "src/acp/client.ts:1831-1917",
+        "src/runtime/engine/manager.ts:1646-1658",
+        "src/runtime/engine/manager.ts:1773-1779",
+        "src/session/execution/runtime.ts:1162-1208",
+        "src/session/queue/owner-turn-controller.ts"
+      ],
+      "upstream_semantics": "session/cancel is a notification, latched to the active owner's cancelPromise and exact session; permission/elicitation lifetimes are aborted. cancelActivePrompt may wait for the actual response with a finite grace period. Before submission, a pending cancellation rejects promptStarted and returns cancelled without dispatch. Owned client close performs bounded retirement of its direct child and verified descendants. Queue foreground interrupts target an admitted request; lease/process identity checks prevent stale custody from authorizing an unrelated process signal. fs/terminal callback policy and permission approval remain protocol policy, not an OS sandbox.",
+      "compatibility_plan": "Retain the existing notification, late-completion, pre-dispatch cancellation, owned-process identity and cleanup behavior. Add opt-in assurance that distinguishes requested, written, acknowledged, cleanup attempted and cleanup verified/unknown. Exercise ignored and blocked cancel, crash, late completion, stale turn/request and wrong process identity through directed tests without broadening kill targets or conflating cancellation acknowledgement with native tool termination.",
+      "residual_limits": "The local audit exercised ignored and acknowledged cancellation, not native tool termination or all OS process-tree cases. A peer's cancelled stop does not prove external native subprocesses are gone. Existing blocked-write, cleanup and PID-reuse tests were inspected; their execution remains part of the unchanged host qualification.",
+      "evidence": [
+        "src/acp/client.ts",
+        "src/acp/process-descendants.ts",
+        "src/runtime/engine/manager.ts",
+        "src/session/execution/runtime.ts",
+        "src/session/queue/owner-turn-controller.ts",
+        "test/fork-audit.test.ts",
+        "test/prompt-interruption.test.ts",
+        "test/client-process-cleanup.test.ts",
+        "test/queue-owner-process-identity.test.ts",
+        "docs/fork-evidence/audit-observations.json"
+      ]
+    },
+    {
+      "category": "observability",
+      "status": "gap_reproduced",
+      "reason": "The existing opt-in wire observer received the synthetic prompt body; rich runtime events retained synthetic thought text, rawInput and rawOutput. One tool emitted two events with the same toolCallId. Nine asynchronous sink calls remained unresolved when the turn completed, and a bounded 512-event probe retained all 512 events in AsyncEventQueue before consumption. Source contains no queue capacity/drop accounting or concurrency cap for these paths. Thus existing rich observation is not the required sanitized bounded telemetry channel. This is a fork requirement gap, not a claim of default unauthorized logging.",
+      "source_locations": [
+        "src/runtime/public/contract.ts:257-324",
+        "src/runtime/public/contract.ts:486-494",
+        "src/runtime/public/events.ts:430-447",
+        "src/runtime/engine/manager.ts:354-363",
+        "src/runtime/engine/turn.ts:24-89",
+        "src/acp/observed-stream.ts:22-84"
+      ],
+      "upstream_semantics": "Raw onAcpMessage is explicitly opt-in, best-effort, excludes elicitation exchanges and suppressed replay updates, and is not a write receipt. Runtime observer throws/rejections are already isolated and do not affect the result. Rich events intentionally preserve tool JSON snapshots and thought/output streams. A stream abandoned by its consumer is closed/cleared and stops retaining subsequent events, while a stream never consumed can buffer without an application-level cap. Process lifecycle observation and persistent rich journals are distinct existing paths.",
+      "compatibility_plan": "Add a separate opt-in sanitized, bounded observation path. Use allowlisted lifecycle/category fields, opaque privacy-safe correlation IDs, monotonic sequence/time and duration; deduplicate tool lifecycle updates by turn plus toolCallId. Explicitly label unknown, partial, dropped and truncated coverage. Bound retained events/bytes, tool tracking and sink concurrency/time, and isolate throwing, slow or never-settling sinks without changing the turn result. Exclude prompt/thought bodies, titles/paths, raw args/output, stderr, credentials and private configuration. Preserve legacy rich events, their privacy contract, replay suppression and abandoned-stream behavior. No daemon, user notification or external telemetry transport.",
+      "residual_limits": "Instrumentation sees only client/ACP events, not hidden native reasoning or all backend effects. Safe observation is not yet implemented. Existing rich journals and observers remain sensitive opt-in interfaces and must not be relabeled privacy-safe. The 512-event probe is not an exhaustion benchmark.",
+      "evidence": [
+        "src/runtime/public/contract.ts",
+        "src/runtime/public/events.ts",
+        "src/runtime/engine/manager.ts",
+        "src/runtime/engine/turn.ts",
+        "src/acp/observed-stream.ts",
+        "test/fork-audit.test.ts",
+        "test/fixtures/fork-audit-reproduce.ts",
+        "test/runtime-turn-queue.test.ts",
+        "test/runtime-message-observer.test.ts",
+        "docs/fork-evidence/audit-observations.json"
+      ]
+    }
+  ],
+  "validation": {
+    "local_fixture_tests": "13 passed, zero failed/cancelled/skipped/todo; actual runtime/client exports and local ACP subprocess",
+    "baseline_characterization": "Protocol mismatch and observation gap reproduced; sanitized values in audit-observations.json",
+    "local_build_and_test_compilation": "pnpm run build and pnpm run build:test passed",
+    "targeted_lint_and_format": "Type-aware Oxlint and explicit Oxfmt checks passed for the new audit fixtures/tests and reports",
+    "documentation_checks": "pnpm run check:docs passed, including Markdown lint and docs-site link validation",
+    "protected_integrity": "All 310 baseline-protected files and every original package script matched the fixed external baseline",
+    "full_repository_checks": "Not claimed by this audit; unchanged pnpm run check and pnpm run check:docs remain required for integrated qualification, with host execution for sandbox-restricted checks",
+    "frozen_stage_acceptance": "Pending scheduler-owned acceptance.py audit; not run or modified by worker",
+    "independent_review": "Reserved for the final origin-owned handoff",
+    "installed_pi_local_model": "Not run; reserved for the bounded final origin-owned sample",
+    "cloud_provider_or_real_user_evidence": "None"
+  },
+  "checkpoint": "docs/fork-evidence/checkpoint.md"
+}

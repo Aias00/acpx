@@ -1,0 +1,712 @@
+TAP version 13
+# Subtest: runtimeEventFromMessage ignores non-update messages
+ok 1 - runtimeEventFromMessage ignores non-update messages
+  ---
+  duration_ms: 0.46275
+  type: 'test'
+  ...
+# Subtest: runtimeEventFromMessage handles text chunks, usage updates, tool updates, and tool inputs
+ok 2 - runtimeEventFromMessage handles text chunks, usage updates, tool updates, and tool inputs
+  ---
+  duration_ms: 0.810334
+  type: 'test'
+  ...
+# Subtest: runtimeEventFromMessage handles runtime status-style updates
+ok 3 - runtimeEventFromMessage handles runtime status-style updates
+  ---
+  duration_ms: 0.218208
+  type: 'test'
+  ...
+# Subtest: runtimeEventFromMessage ignores unsupported update content
+ok 4 - runtimeEventFromMessage ignores unsupported update content
+  ---
+  duration_ms: 0.155709
+  type: 'test'
+  ...
+# Subtest: runtimeEventFromMessage covers status and tool summary fallbacks
+ok 5 - runtimeEventFromMessage covers status and tool summary fallbacks
+  ---
+  duration_ms: 0.165958
+  type: 'test'
+  ...
+# Subtest: runtimeEventFromMessage surfaces cost and _meta.usage breakdown on usage_update
+ok 6 - runtimeEventFromMessage surfaces cost and _meta.usage breakdown on usage_update
+  ---
+  duration_ms: 0.121542
+  type: 'test'
+  ...
+# Subtest: runtimeEventFromMessage surfaces full availableCommands list with hasInput flag
+ok 7 - runtimeEventFromMessage surfaces full availableCommands list with hasInput flag
+  ---
+  duration_ms: 0.066833
+  type: 'test'
+  ...
+# Subtest: runtimeEventFromMessage preserves messageId and allowlisted _meta on agent_message_chunk text_delta
+ok 8 - runtimeEventFromMessage preserves messageId and allowlisted _meta on agent_message_chunk text_delta
+  ---
+  duration_ms: 0.758875
+  type: 'test'
+  ...
+# Subtest: runtimeEventFromMessage drops unknown and secret-like _meta keys from text_delta
+ok 9 - runtimeEventFromMessage drops unknown and secret-like _meta keys from text_delta
+  ---
+  duration_ms: 0.292
+  type: 'test'
+  ...
+# Subtest: runtimeEventFromMessage omits origin fields when messageId/_meta are absent or empty
+ok 10 - runtimeEventFromMessage omits origin fields when messageId/_meta are absent or empty
+  ---
+  duration_ms: 0.348041
+  type: 'test'
+  ...
+# Subtest: runtimeEventFromMessage ignores non-ACP message_id and meta aliases
+ok 11 - runtimeEventFromMessage ignores non-ACP message_id and meta aliases
+  ---
+  duration_ms: 0.156541
+  type: 'test'
+  ...
+# Subtest: runtimeEventFromMessage preserves origin on agent_thought_chunk
+ok 12 - runtimeEventFromMessage preserves origin on agent_thought_chunk
+  ---
+  duration_ms: 0.254416
+  type: 'test'
+  ...
+# Subtest: runtimeEventFromMessage surfaces structured plan entries
+ok 13 - runtimeEventFromMessage surfaces structured plan entries
+  ---
+  duration_ms: 0.344791
+  type: 'test'
+  ...
+# Subtest: runtimeEventFromMessage preserves explicit empty plan replacements
+ok 14 - runtimeEventFromMessage preserves explicit empty plan replacements
+  ---
+  duration_ms: 0.135958
+  type: 'test'
+  ...
+# Subtest: runtimeEventFromMessage recovers plan snapshots with malformed leading entries
+ok 15 - runtimeEventFromMessage recovers plan snapshots with malformed leading entries
+  ---
+  duration_ms: 0.130459
+  type: 'test'
+  ...
+# Subtest: runtimeEventFromMessage preserves detached tool payloads and JSON field omission
+ok 16 - runtimeEventFromMessage preserves detached tool payloads and JSON field omission
+  ---
+  duration_ms: 0.587
+  type: 'test'
+  ...
+# Subtest: AcpRuntimeManager reuses compatible records without spawning a new client
+ok 17 - AcpRuntimeManager reuses compatible records without spawning a new client
+  ---
+  duration_ms: 1.191167
+  type: 'test'
+  ...
+# Subtest: AcpRuntimeManager closes an incompatible persistent owner before replacing its record
+ok 18 - AcpRuntimeManager closes an incompatible persistent owner before replacing its record
+  ---
+  duration_ms: 3.751834
+  type: 'test'
+  ...
+# Subtest: AcpRuntimeManager creates and resumes sessions through the client
+ok 19 - AcpRuntimeManager creates and resumes sessions through the client
+  ---
+  duration_ms: 1.056292
+  type: 'test'
+  ...
+# Subtest: pending oneshot ownership preserves omitted options
+ok 20 - pending oneshot ownership preserves omitted options
+  ---
+  duration_ms: 2.053458
+  type: 'test'
+  ...
+# Subtest: pending oneshot ownership preserves omitted versus whitespace replacement
+ok 21 - pending oneshot ownership preserves omitted versus whitespace replacement
+  ---
+  duration_ms: 0.756209
+  type: 'test'
+  ...
+# Subtest: pending oneshot ownership preserves omitted versus whitespace append
+ok 22 - pending oneshot ownership preserves omitted versus whitespace append
+  ---
+  duration_ms: 0.965167
+  type: 'test'
+  ...
+# Subtest: pending oneshot ownership preserves omitted versus own proto env key
+ok 23 - pending oneshot ownership preserves omitted versus own proto env key
+  ---
+  duration_ms: 0.676209
+  type: 'test'
+  ...
+# Subtest: pending oneshot ownership preserves empty options
+ok 24 - pending oneshot ownership preserves empty options
+  ---
+  duration_ms: 0.373709
+  type: 'test'
+  ...
+# Subtest: pending oneshot ownership preserves empty environment
+ok 25 - pending oneshot ownership preserves empty environment
+  ---
+  duration_ms: 0.359208
+  type: 'test'
+  ...
+# Subtest: pending oneshot ownership preserves explicit undefined beside an empty tool list
+ok 26 - pending oneshot ownership preserves explicit undefined beside an empty tool list
+  ---
+  duration_ms: 0.378333
+  type: 'test'
+  ...
+# Subtest: pending oneshot ownership preserves explicit empty tool list
+ok 27 - pending oneshot ownership preserves explicit empty tool list
+  ---
+  duration_ms: 0.413041
+  type: 'test'
+  ...
+# Subtest: pending oneshot ownership preserves omitted followed by empty options
+ok 28 - pending oneshot ownership preserves omitted followed by empty options
+  ---
+  duration_ms: 0.368958
+  type: 'test'
+  ...
+# Subtest: pending oneshot ownership preserves omitted tools versus explicit empty tools
+ok 29 - pending oneshot ownership preserves omitted tools versus explicit empty tools
+  ---
+  duration_ms: 0.457292
+  type: 'test'
+  ...
+# Subtest: pending oneshot ownership preserves explicit zero turns versus omitted turns
+ok 30 - pending oneshot ownership preserves explicit zero turns versus omitted turns
+  ---
+  duration_ms: 0.410667
+  type: 'test'
+  ...
+# Subtest: pending oneshot ownership preserves replacement versus appended system prompt
+ok 31 - pending oneshot ownership preserves replacement versus appended system prompt
+  ---
+  duration_ms: 0.370208
+  type: 'test'
+  ...
+# Subtest: pending oneshot ownership preserves literal environment whitespace
+ok 32 - pending oneshot ownership preserves literal environment whitespace
+  ---
+  duration_ms: 0.382458
+  type: 'test'
+  ...
+# Subtest: pending oneshot ownership preserves literal system-prompt whitespace
+ok 33 - pending oneshot ownership preserves literal system-prompt whitespace
+  ---
+  duration_ms: 0.328
+  type: 'test'
+  ...
+# Subtest: pending oneshot ownership preserves literal model spelling
+ok 34 - pending oneshot ownership preserves literal model spelling
+  ---
+  duration_ms: 1.084458
+  type: 'test'
+  ...
+# Subtest: AcpRuntimeManager closes retained oneshot owners on pre-turn exits
+ok 35 - AcpRuntimeManager closes retained oneshot owners on pre-turn exits
+  ---
+  duration_ms: 4.403458
+  type: 'test'
+  ...
+# Subtest: AcpRuntimeManager streams runtime events and saves updated status
+ok 36 - AcpRuntimeManager streams runtime events and saves updated status
+  ---
+  duration_ms: 1.375542
+  type: 'test'
+  ...
+# Subtest: AcpRuntimeManager surfaces structured plan snapshots through turn events
+ok 37 - AcpRuntimeManager surfaces structured plan snapshots through turn events
+  ---
+  duration_ms: 0.495084
+  type: 'test'
+  ...
+# Subtest: AcpRuntimeManager resolves promptStarted while the submitted prompt is pending
+ok 38 - AcpRuntimeManager resolves promptStarted while the submitted prompt is pending
+  ---
+  duration_ms: 0.277417
+  type: 'test'
+  ...
+# Subtest: AcpRuntimeManager rejects promptStarted when the turn fails before submission
+ok 39 - AcpRuntimeManager rejects promptStarted when the turn fails before submission
+  ---
+  duration_ms: 0.63425
+  type: 'test'
+  ...
+# Subtest: AcpRuntimeManager rejects promptStarted when the prompt transport write fails
+ok 40 - AcpRuntimeManager rejects promptStarted when the prompt transport write fails
+  ---
+  duration_ms: 0.286125
+  type: 'test'
+  ...
+# Subtest: AcpRuntimeManager preserves retained ownership when turn preparation persistence fails
+ok 41 - AcpRuntimeManager preserves retained ownership when turn preparation persistence fails
+  ---
+  duration_ms: 0.390166
+  type: 'test'
+  ...
+# Subtest: AcpRuntimeManager rejects promptStarted when cancelled before submission
+ok 42 - AcpRuntimeManager rejects promptStarted when cancelled before submission
+  ---
+  duration_ms: 0.089
+  type: 'test'
+  ...
+# Subtest: AcpRuntimeManager keeps promptStarted resolved when submission later fails
+ok 43 - AcpRuntimeManager keeps promptStarted resolved when submission later fails
+  ---
+  duration_ms: 0.423042
+  type: 'test'
+  ...
+# Subtest: AcpRuntimeManager persists prompt response usage and surfaces it in status
+ok 44 - AcpRuntimeManager persists prompt response usage and surfaces it in status
+  ---
+  duration_ms: 1.152916
+  type: 'test'
+  ...
+# Subtest: AcpRuntimeManager restores persisted session env when reconnecting startTurn
+ok 45 - AcpRuntimeManager restores persisted session env when reconnecting startTurn
+  ---
+  duration_ms: 0.686625
+  type: 'test'
+  ...
+# Subtest: AcpRuntimeManager keeps reusable persistent clients pooled across turns and closes them on runtime close
+ok 46 - AcpRuntimeManager keeps reusable persistent clients pooled across turns and closes them on runtime close
+  ---
+  duration_ms: 1.156875
+  type: 'test'
+  ...
+# Subtest: AcpRuntimeManager runTurn remains a compatibility adapter over startTurn
+ok 47 - AcpRuntimeManager runTurn remains a compatibility adapter over startTurn
+  ---
+  duration_ms: 0.294
+  type: 'test'
+  ...
+# Subtest: AcpRuntimeManager retains a reusable persistent client across turns
+ok 48 - AcpRuntimeManager retains a reusable persistent client across turns
+  ---
+  duration_ms: 0.479333
+  type: 'test'
+  ...
+# Subtest: AcpRuntimeManager retries failed reconnect preferences with a new client
+ok 49 - AcpRuntimeManager retries failed reconnect preferences with a new client
+  ---
+  duration_ms: 0.690166
+  type: 'test'
+  ...
+# Subtest: AcpRuntimeManager keeps config acknowledgements after earlier reconnect notifications
+ok 50 - AcpRuntimeManager keeps config acknowledgements after earlier reconnect notifications
+  ---
+  duration_ms: 0.83375
+  type: 'test'
+  ...
+# Subtest: AcpRuntimeManager keeps config acknowledgements after earlier idle notifications
+ok 51 - AcpRuntimeManager keeps config acknowledgements after earlier idle notifications
+  ---
+  duration_ms: 0.56375
+  type: 'test'
+  ...
+# Subtest: AcpRuntimeManager keeps config acknowledgements after earlier initialize notifications
+ok 52 - AcpRuntimeManager keeps config acknowledgements after earlier initialize notifications
+  ---
+  duration_ms: 0.293083
+  type: 'test'
+  ...
+# Subtest: AcpRuntimeManager keeps config acknowledgements after earlier initialize-save notifications
+ok 53 - AcpRuntimeManager keeps config acknowledgements after earlier initialize-save notifications
+  ---
+  duration_ms: 0.266041
+  type: 'test'
+  ...
+# Subtest: AcpRuntimeManager keeps config acknowledgements after earlier initialize-failure notifications
+ok 54 - AcpRuntimeManager keeps config acknowledgements after earlier initialize-failure notifications
+  ---
+  duration_ms: 651.966583
+  type: 'test'
+  ...
+# Subtest: AcpRuntimeManager projects session updates before, during, and after turns
+ok 55 - AcpRuntimeManager projects session updates before, during, and after turns
+  ---
+  duration_ms: 1.204583
+  type: 'test'
+  ...
+# Subtest: AcpRuntimeManager closeStream suppresses future live events while preserving terminal completion
+ok 56 - AcpRuntimeManager closeStream suppresses future live events while preserving terminal completion
+  ---
+  duration_ms: 0.374916
+  type: 'test'
+  ...
+# Subtest: AcpRuntimeManager break suppresses future live events while preserving terminal completion
+ok 57 - AcpRuntimeManager break suppresses future live events while preserving terminal completion
+  ---
+  duration_ms: 0.184
+  type: 'test'
+  ...
+# Subtest: AcpRuntimeManager does not pool a persistent client after active close
+ok 58 - AcpRuntimeManager does not pool a persistent client after active close
+  ---
+  duration_ms: 0.359
+  type: 'test'
+  ...
+# Subtest: AcpRuntimeManager queues one record without blocking other records or active controls
+ok 59 - AcpRuntimeManager queues one record without blocking other records or active controls
+  ---
+  duration_ms: 0.867875
+  type: 'test'
+  ...
+# Subtest: AcpRuntimeManager rejects fresh preparation when idle owner finalization fails
+ok 60 - AcpRuntimeManager rejects fresh preparation when idle owner finalization fails
+  ---
+  duration_ms: 0.642083
+  type: 'test'
+  ...
+# Subtest: AcpRuntimeManager rejects fresh preparation when active owner finalization fails
+ok 61 - AcpRuntimeManager rejects fresh preparation when active owner finalization fails
+  ---
+  duration_ms: 0.545333
+  type: 'test'
+  ...
+# Subtest: AcpRuntimeManager live checkpoints preserve active close state
+ok 62 - AcpRuntimeManager live checkpoints preserve active close state
+  ---
+  duration_ms: 650.188166
+  type: 'test'
+  ...
+# Subtest: AcpRuntimeManager preserves partial output but fails an unresolved timed-out prompt
+ok 63 - AcpRuntimeManager preserves partial output but fails an unresolved timed-out prompt
+  ---
+  duration_ms: 23.009791
+  type: 'test'
+  ...
+# Subtest: AcpRuntimeManager preserves a final response and chunks arriving during timeout draining
+ok 64 - AcpRuntimeManager preserves a final response and chunks arriving during timeout draining
+  ---
+  duration_ms: 1322.054667
+  type: 'test'
+  ...
+# Subtest: AcpRuntimeManager routes controls through the active controller while a turn is running
+ok 65 - AcpRuntimeManager routes controls through the active controller while a turn is running
+  ---
+  duration_ms: 2.00575
+  type: 'test'
+  ...
+# Subtest: AcpRuntimeManager rejects unsupported advertised config option keys after refresh
+ok 66 - AcpRuntimeManager rejects unsupported advertised config option keys after refresh
+  ---
+  duration_ms: 1.400417
+  type: 'test'
+  ...
+# Subtest: AcpRuntimeManager maps generic thinking config to refreshed advertised effort key
+ok 67 - AcpRuntimeManager maps generic thinking config to refreshed advertised effort key
+  ---
+  duration_ms: 0.842584
+  type: 'test'
+  ...
+# Subtest: AcpRuntimeManager persists accepted model preferences: normalizes saved effort
+ok 68 - AcpRuntimeManager persists accepted model preferences: normalizes saved effort
+  ---
+  duration_ms: 0.978083
+  type: 'test'
+  ...
+# Subtest: AcpRuntimeManager persists accepted model preferences: removes unavailable effort
+ok 69 - AcpRuntimeManager persists accepted model preferences: removes unavailable effort
+  ---
+  duration_ms: 0.638667
+  type: 'test'
+  ...
+# Subtest: AcpRuntimeManager persists accepted model preferences: does not pin default effort
+ok 70 - AcpRuntimeManager persists accepted model preferences: does not pin default effort
+  ---
+  duration_ms: 0.626
+  type: 'test'
+  ...
+# Subtest: AcpRuntimeManager persists accepted model preferences: learns the model control from the response
+ok 71 - AcpRuntimeManager persists accepted model preferences: learns the model control from the response
+  ---
+  duration_ms: 0.478209
+  type: 'test'
+  ...
+# Subtest: AcpRuntimeManager maps active thinking controls and persists the accepted value
+ok 72 - AcpRuntimeManager maps active thinking controls and persists the accepted value
+  ---
+  duration_ms: 0.88925
+  type: 'test'
+  ...
+# Subtest: AcpRuntimeManager retains a model selection when its control disappears before acknowledgement
+ok 73 - AcpRuntimeManager retains a model selection when its control disappears before acknowledgement
+  ---
+  duration_ms: 1.407375
+  type: 'test'
+  ...
+# Subtest: AcpRuntimeManager waits for active load refresh before resolving generic config keys
+ok 74 - AcpRuntimeManager waits for active load refresh before resolving generic config keys
+  ---
+  duration_ms: 1.03625
+  type: 'test'
+  ...
+# Subtest: AcpRuntimeManager waits for oneshot load fallback to resolve before sending controls
+ok 75 - AcpRuntimeManager waits for oneshot load fallback to resolve before sending controls
+  ---
+  duration_ms: 2.816958
+  type: 'test'
+  ...
+# Subtest: AcpRuntimeManager honors aborts requested before prompt starts after oneshot load fallback
+ok 76 - AcpRuntimeManager honors aborts requested before prompt starts after oneshot load fallback
+  ---
+  duration_ms: 2.272541
+  type: 'test'
+  ...
+# Subtest: AcpRuntimeManager handles offline oneshot controls, status, close, and missing records
+ok 77 - AcpRuntimeManager handles offline oneshot controls, status, close, and missing records
+  ---
+  duration_ms: 1.44775
+  type: 'test'
+  ...
+# Subtest: AcpRuntimeManager closes the backend session when discarding persistent state
+ok 78 - AcpRuntimeManager closes the backend session when discarding persistent state
+  ---
+  duration_ms: 0.937042
+  type: 'test'
+  ...
+# Subtest: AcpRuntimeManager closes a retained client when the final backend-close flush fails
+ok 79 - AcpRuntimeManager closes a retained client when the final backend-close flush fails
+  ---
+  duration_ms: 0.695583
+  type: 'test'
+  ...
+# Subtest: AcpRuntimeManager treats missing backend sessions as a successful discard reset
+ok 80 - AcpRuntimeManager treats missing backend sessions as a successful discard reset
+  ---
+  duration_ms: 0.366833
+  type: 'test'
+  ...
+# Subtest: AcpRuntimeManager settles a published launch when shutdown interrupts its initial save
+ok 81 - AcpRuntimeManager settles a published launch when shutdown interrupts its initial save
+  ---
+  duration_ms: 0.932958
+  type: 'test'
+  ...
+# Subtest: AcpRuntimeManager keeps a published launch open when shutdown and client cleanup fail
+ok 82 - AcpRuntimeManager keeps a published launch open when shutdown and client cleanup fail
+  ---
+  duration_ms: 0.442709
+  type: 'test'
+  ...
+# Subtest: AcpRuntimeManager settles an abandoned launch after cleanup succeeds on shutdown
+ok 83 - AcpRuntimeManager settles an abandoned launch after cleanup succeeds on shutdown
+  ---
+  duration_ms: 0.451666
+  type: 'test'
+  ...
+# Subtest: AcpRuntimeManager settles an abandoned launch after cleanup succeeds on ensure
+ok 84 - AcpRuntimeManager settles an abandoned launch after cleanup succeeds on ensure
+  ---
+  duration_ms: 0.441459
+  type: 'test'
+  ...
+# Subtest: AcpRuntimeManager retries discarded detached state after cleanup failure
+ok 85 - AcpRuntimeManager retries discarded detached state after cleanup failure
+  ---
+  duration_ms: 0.552125
+  type: 'test'
+  ...
+# Subtest: AcpRuntimeManager retries discarded detached state after save failure
+ok 86 - AcpRuntimeManager retries discarded detached state after save failure
+  ---
+  duration_ms: 0.370333
+  type: 'test'
+  ...
+# Subtest: AcpRuntimeManager retries discarded retained state after cleanup failure
+ok 87 - AcpRuntimeManager retries discarded retained state after cleanup failure
+  ---
+  duration_ms: 0.425625
+  type: 'test'
+  ...
+# Subtest: AcpRuntimeManager retries discarded retained state after save failure
+ok 88 - AcpRuntimeManager retries discarded retained state after save failure
+  ---
+  duration_ms: 0.394917
+  type: 'test'
+  ...
+# Subtest: AcpRuntimeManager settles a failed discard after unsupported and retries the backend
+ok 89 - AcpRuntimeManager settles a failed discard after unsupported and retries the backend
+  ---
+  duration_ms: 0.6995
+  type: 'test'
+  ...
+# Subtest: AcpRuntimeManager settles a failed discard after request-error and retries the backend
+ok 90 - AcpRuntimeManager settles a failed discard after request-error and retries the backend
+  ---
+  duration_ms: 0.490042
+  type: 'test'
+  ...
+# Subtest: AcpRuntimeManager applies timeoutMs to backend session shutdown during discard reset
+ok 91 - AcpRuntimeManager applies timeoutMs to backend session shutdown during discard reset
+  ---
+  duration_ms: 5.674833
+  type: 'test'
+  ...
+# Subtest: AcpRuntimeManager fails offline persistent controls clearly when session reuse is unavailable
+ok 92 - AcpRuntimeManager fails offline persistent controls clearly when session reuse is unavailable
+  ---
+  duration_ms: 0.802083
+  type: 'test'
+  ...
+# Subtest: AcpRuntimeManager surfaces normalized prompt failures
+ok 93 - AcpRuntimeManager surfaces normalized prompt failures
+  ---
+  duration_ms: 0.782541
+  type: 'test'
+  ...
+# Subtest: AcpRuntimeManager rejects unsupported runtime attachment media types
+ok 94 - AcpRuntimeManager rejects unsupported runtime attachment media types
+  ---
+  duration_ms: 0.1285
+  type: 'test'
+  ...
+# Subtest: AcpRuntimeManager maps audio attachments into ACP prompt blocks
+ok 95 - AcpRuntimeManager maps audio attachments into ACP prompt blocks
+  ---
+  duration_ms: 0.357042
+  type: 'test'
+  ...
+# Subtest: AcpRuntimeManager keeps failed reconnect results pending until PID persistence and client cleanup complete
+ok 96 - AcpRuntimeManager keeps failed reconnect results pending until PID persistence and client cleanup complete
+  ---
+  duration_ms: 1.354458
+  type: 'test'
+  ...
+# Subtest: AcpRuntimeManager closes the stream and client before reporting an unexpected finalization failure
+ok 97 - AcpRuntimeManager closes the stream and client before reporting an unexpected finalization failure
+  ---
+  duration_ms: 1.632958
+  type: 'test'
+  ...
+# Subtest: AcpRuntimeManager fails the turn when the final owner checkpoint throws
+ok 98 - AcpRuntimeManager fails the turn when the final owner checkpoint throws
+  ---
+  duration_ms: 0.837292
+  type: 'test'
+  ...
+# Subtest: AcpRuntimeManager fails persistent turns clearly when session reuse is unavailable
+ok 99 - AcpRuntimeManager fails persistent turns clearly when session reuse is unavailable
+  ---
+  duration_ms: 0.362417
+  type: 'test'
+  ...
+# Subtest: AcpRuntimeManager still falls back to a fresh session for oneshot turns
+ok 100 - AcpRuntimeManager still falls back to a fresh session for oneshot turns
+  ---
+  duration_ms: 0.34775
+  type: 'test'
+  ...
+# Subtest: AcpRuntimeManager falls back when a kept-open persistent client is no longer reusable
+ok 101 - AcpRuntimeManager falls back when a kept-open persistent client is no longer reusable
+  ---
+  duration_ms: 0.616084
+  type: 'test'
+  ...
+# Subtest: AcpRuntimeManager reuses a kept-open persistent client for controls before the first turn
+ok 102 - AcpRuntimeManager reuses a kept-open persistent client for controls before the first turn
+  ---
+  duration_ms: 1.571209
+  type: 'test'
+  ...
+# Subtest: AcpRuntimeManager getStatus surfaces models advertised by the agent
+ok 103 - AcpRuntimeManager getStatus surfaces models advertised by the agent
+  ---
+  duration_ms: 0.240833
+  type: 'test'
+  ...
+# Subtest: AcpRuntimeManager getStatus omits models when the agent did not advertise any
+ok 104 - AcpRuntimeManager getStatus omits models when the agent did not advertise any
+  ---
+  duration_ms: 0.145875
+  type: 'test'
+  ...
+# Subtest: AcpRuntimeManager getStatus.models survives a save/reload cycle
+ok 105 - AcpRuntimeManager getStatus.models survives a save/reload cycle
+  ---
+  duration_ms: 0.19175
+  type: 'test'
+  ...
+# Subtest: AcpRuntimeManager forwards sessionOptions to createClient on fresh session
+ok 106 - AcpRuntimeManager forwards sessionOptions to createClient on fresh session
+  ---
+  duration_ms: 0.2235
+  type: 'test'
+  ...
+# Subtest: AcpRuntimeManager persists sessionOptions { append } and model/allowedTools/maxTurns
+ok 107 - AcpRuntimeManager persists sessionOptions { append } and model/allowedTools/maxTurns
+  ---
+  duration_ms: 0.293333
+  type: 'test'
+  ...
+# Subtest: persistSessionOptions preserves an explicit empty allowedTools list
+ok 108 - persistSessionOptions preserves an explicit empty allowedTools list
+  ---
+  duration_ms: 0.050583
+  type: 'test'
+  ...
+# Subtest: persistSessionOptions preserves session env as a serialized record
+ok 109 - persistSessionOptions preserves session env as a serialized record
+  ---
+  duration_ms: 0.085458
+  type: 'test'
+  ...
+# Subtest: sessionOptionsFromRecord restores session env from a persisted record
+ok 110 - sessionOptionsFromRecord restores session env from a persisted record
+  ---
+  duration_ms: 0.063541
+  type: 'test'
+  ...
+# Subtest: persistSessionOptions preserves raw nonempty system prompts and omits empty prompts
+ok 111 - persistSessionOptions preserves raw nonempty system prompts and omits empty prompts
+  ---
+  duration_ms: 0.080125
+  type: 'test'
+  ...
+# Subtest: sessionOptionsFromRecord restores raw nonempty prompts from independently seeded records
+ok 112 - sessionOptionsFromRecord restores raw nonempty prompts from independently seeded records
+  ---
+  duration_ms: 0.063333
+  type: 'test'
+  ...
+# Subtest: mergeSessionOptions merges session env per key with preferred overriding fallback
+ok 113 - mergeSessionOptions merges session env per key with preferred overriding fallback
+  ---
+  duration_ms: 0.052709
+  type: 'test'
+  ...
+# Subtest: AcpRuntimeManager ignores sessionOptions when reusing an existing persistent record
+ok 114 - AcpRuntimeManager ignores sessionOptions when reusing an existing persistent record
+  ---
+  duration_ms: 0.148667
+  type: 'test'
+  ...
+# Subtest: AcpRuntimeManager getStatus surfaces token usage breakdowns and available commands
+ok 115 - AcpRuntimeManager getStatus surfaces token usage breakdowns and available commands
+  ---
+  duration_ms: 0.212292
+  type: 'test'
+  ...
+# Subtest: AcpRuntimeManager getStatus omits usage and availableCommands when the record carries neither
+ok 116 - AcpRuntimeManager getStatus omits usage and availableCommands when the record carries neither
+  ---
+  duration_ms: 0.062167
+  type: 'test'
+  ...
+# Subtest: AcpRuntimeManager getStatus accepts legacy available command names
+ok 117 - AcpRuntimeManager getStatus accepts legacy available command names
+  ---
+  duration_ms: 0.07225
+  type: 'test'
+  ...
+1..117
+# tests 117
+# suites 0
+# pass 117
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 2937.203125

@@ -9,3 +9,4 @@ examples/flows/replay-viewer/dist/
 coverage/
 .venv/
 __pycache__/
+.local-verification/
