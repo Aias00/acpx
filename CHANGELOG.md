@@ -6,6 +6,14 @@ Repo: https://github.com/openclaw/acpx
 
 ## Unreleased
 
+## 0.23.0 - 2026-11-26
+
+**Highlights:** Guard prompts against replaced sessions, improve cancellation and session recovery, preserve tool results and process failures, and clarify CLI and flow diagnostics.
+
+### Changes
+
+- CLI: add `prompt --expect-record <id>` so callers can reject a replaced named session before sending or queueing a prompt. Thanks @vincentkoc.
+
 ### Fixes
 
 - Sessions: keep tool result text that agents report through ACP `content` blocks when they send no `rawOutput`, so saved sessions and the embedded runtime no longer record those results as empty. Thanks @saariuslystoned.
@@ -45,6 +53,11 @@ Repo: https://github.com/openclaw/acpx
 - Sessions/watch: keep read contents suppressed when opposite-direction requests reuse an RPC ID. Thanks @saariuslystoned.
 - Sessions/list: preserve accepted opaque pagination cursors without trimming them. Thanks @saariuslystoned.
 - CLI: identify missing or non-file prompt, flow, and flow-input paths while preserving exit codes and JSON error envelopes. Thanks @KrasimirKralev.
+- CLI: `prompt`, `exec` and bare `acpx <agent>` now reject an empty `--file` argument (for example an unset shell variable) with `Prompt file must not be empty` (exit 2), as `compare` already does, instead of silently reading the prompt from stdin. Thanks @KrasimirKralev.
+- CLI/terminals/flows: a working directory that is a regular file (`--cwd`, `terminal/create`, shell actions) now reports `Working directory is unavailable: <path>` instead of `ENOTDIR` on the project `.acpxrc.json` or a bare `spawn ENOTDIR`. Thanks @KrasimirKralev.
+- CLI: show hidden child directories with an explicit relative path in reused-session banners. Thanks @Dcastroro.
+- Dependencies: update the guarded filesystem runtime and development tools while retaining ACP SDK 1.x and the existing security overrides.
+- Sessions: keep local listing and history reads from creating a session directory in an empty home.
 
 - ACP: reject incompatible initialize protocol versions before authentication or session creation.
 - Runtime/embedding: add opt-in capability evidence, correlated turn/delivery/cancellation receipts, bounded cancel waits and a separate bounded sanitized observation sink. Ordinary v1 turn results retain their existing semantics; native and business outcomes remain unknown without separate evidence.

@@ -478,6 +478,19 @@ test("formatPromptSessionBannerLine includes routed-from path when cwd differs",
   );
 });
 
+test("formatPromptSessionBannerLine prefixes a hidden child with the current-directory component", () => {
+  const cwd = path.resolve("project");
+  const record = makeSessionRecord({
+    acpxRecordId: "hidden-child",
+    acpSessionId: "hidden-child",
+    agentCommand: "agent-a",
+    cwd,
+  });
+  const currentCwd = path.join(cwd, ".cache");
+  const line = formatPromptSessionBannerLine(record, currentCwd);
+  assert.ok(line.includes(`(routed from .${path.sep}.cache)`), line);
+});
+
 test("CLI resolves unknown subcommand names as raw agent commands", async () => {
   await withTempHome(async (homeDir) => {
     const cwd = path.join(homeDir, "workspace");
@@ -660,6 +673,19 @@ test(
           `Working directory is unavailable: ${path.join(homeDir, "missing-workspace")}.`,
         ),
       );
+
+      const fileCwd = path.join(homeDir, "workspace-file");
+      await fs.writeFile(fileCwd, "not a directory\n");
+      const fileCwdText = await runCli(
+        ["--cwd", fileCwd, "--agent", process.execPath, "exec", "ping"],
+        homeDir,
+      );
+      assert.equal(fileCwdText.code, 1);
+      assert(
+        fileCwdText.stderr.includes(`Working directory is unavailable: ${fileCwd}.`),
+        fileCwdText.stderr,
+      );
+      assert.doesNotMatch(fileCwdText.stderr, /\.acpxrc\.json/);
     });
   },
 );
@@ -3062,6 +3088,18 @@ test("sessions prune supports json output and include-history", async () => {
     assert.deepEqual(payload.pruned, ["prune-json"]);
     assert.ok(!(await fileExists(sessionFilePath(homeDir, "prune-json"))));
     assert.ok(!(await fileExists(streamFile)));
+  });
+});
+
+test("local session reads leave an empty home untouched", async () => {
+  await withTempHome(async (homeDir) => {
+    const sessionDir = path.join(homeDir, ".acpx", "sessions");
+    const commands = [["list", "--local"], ["show"], ["read"], ["history"]];
+    for (const command of commands) {
+      const result = await runCli(["--format", "json", "pi", "sessions", ...command], homeDir);
+      assert.equal(result.code, command[0] === "list" ? 0 : 1, result.stderr);
+      assert.equal(await fileExists(sessionDir), false, command.join(" "));
+    }
   });
 });
 

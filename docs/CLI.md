@@ -60,6 +60,7 @@ Prompt options:
 ```bash
 -s, --session <name>   Use named session instead of cwd default
 --no-wait              Queue prompt and return immediately if session is busy
+--expect-record <id>   Require the exact local acpxRecordId (explicit prompt only)
 -f, --file <path>      Read prompt text from file (`-` means stdin)
 ```
 
@@ -69,7 +70,8 @@ Notes:
 - Top-level `flow run <file>` executes a user-authored workflow module and persists run state under `~/.acpx/flows/runs/`.
 - If a prompt argument is omitted, `acpx` reads prompt text from stdin when piped.
 - `--file` works for implicit prompt, `prompt`, and `exec` commands.
-- A `--file` path that does not exist or is a directory fails with `Prompt file not found: <path>` or `Prompt file is not a file: <path>` (exit 1) before any agent starts.
+- Use `acpx <agent> prompt -s <name> --expect-record <id> "…"` when another client can replace the named session. Copy the full `acpxRecordId` from `sessions new` or `sessions ensure` JSON output. If routing selects a different record, the CLI exits 4 before queueing the prompt, including with `--no-wait`. The check applies to the local record. The agent's reconnect policy still governs its ACP session.
+- A `--file` path that does not exist or is a directory fails with `Prompt file not found: <path>` or `Prompt file is not a file: <path>` (exit 1) before any agent starts. An empty `--file` value (for example an unset shell variable) fails with `Prompt file must not be empty` (exit 2) instead of falling back to stdin.
 - After an agent name, `--file` may appear before or after `prompt`/`exec`; an explicit value on the subcommand wins. `--no-wait` works before or after `prompt`, and omission still waits normally.
 - `acpx` with no args in an interactive terminal shows help.
 
@@ -760,7 +762,7 @@ Related runtime behavior:
 - child processes inherit the current environment by default
 - Windows shell commands keep stdout and stderr available through `terminal/output`. Terminal kill and release requests fail if process cleanup cannot finish after escalation. The terminal remains available for a cleanup retry; restore a working `taskkill` command before retrying.
 - ACP `terminal/create` honors agent `outputByteLimit`; `0` stores nothing and the default when omitted is 64 KiB. Hosts can opt into an additional per-terminal retention ceiling with `ACPX_TERMINAL_MAX_OUTPUT_BYTES` (for example, `16777216` for 16 MiB). Unset, empty, or zero disables only the host ceiling, preserving the agent limit and default. Positive values must be safe integers. The smaller limit applies to combined stdout and stderr, retaining the newest UTF-8 output and reporting `truncated: true` when exceeded. Truncation drops an incomplete leading code point across writes; the retained output can be empty if no complete code point fits. This bounds retained output per terminal, not total process memory. Each ACP client snapshots the setting at construction; restart warm queue owners to change it.
-- An ACP `terminal/create` whose command or `cwd` does not exist fails with the spawn error's `ENOENT` code; when acpx can tell which piece is missing, the error message names it: the working directory, the executable path, or a command that is not on the child `PATH`.
+- An ACP `terminal/create` whose command or `cwd` does not exist fails with the spawn error's `ENOENT` code; when acpx can tell which piece is missing, the error message names it: the working directory, the executable path, or a command that is not on the child `PATH`. A `cwd` that is a regular file fails with `ENOTDIR` and the same working-directory message.
 
 ## Practical examples
 
