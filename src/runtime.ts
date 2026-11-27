@@ -19,6 +19,7 @@ import type {
   AcpSessionRecord,
 } from "./runtime/public/contract.js";
 import { AcpRuntimeError } from "./runtime/public/errors.js";
+import { mapEnsureSessionFailure } from "./runtime/public/failure-evidence.js";
 import { createFileSessionStore } from "./runtime/public/file-session-store.js";
 import { decodeAcpxRuntimeHandleState, writeHandleState } from "./runtime/public/handle-state.js";
 import { createMemorySessionStore } from "./runtime/public/memory-session-store.js";
@@ -237,14 +238,19 @@ export class AcpxRuntime implements AcpxRuntimeLike {
   async ensureSession(input: AcpRuntimeEnsureInput): Promise<AcpRuntimeHandle> {
     const { sessionName, agent } = this.resolveSessionIdentity(input);
     const manager = await this.getManager();
-    const record = await manager.ensureSession({
-      sessionKey: sessionName,
-      agent,
-      mode: input.mode,
-      cwd: input.cwd ?? this.options.cwd,
-      resumeSessionId: input.resumeSessionId,
-      sessionOptions: input.sessionOptions,
-    });
+    let record: AcpSessionRecord;
+    try {
+      record = await manager.ensureSession({
+        sessionKey: sessionName,
+        agent,
+        mode: input.mode,
+        cwd: input.cwd ?? this.options.cwd,
+        resumeSessionId: input.resumeSessionId,
+        sessionOptions: input.sessionOptions,
+      });
+    } catch (error) {
+      throw mapEnsureSessionFailure(error);
+    }
 
     return this.createSessionHandle({ ...input, agent }, record);
   }

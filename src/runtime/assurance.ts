@@ -100,6 +100,11 @@ export type AcpTurnAssurance = {
     | "transport_or_client"
     | "client_finalization";
   durationMs: number;
+  /**
+   * Wire-observed JSON-RPC error code for this turn when it cannot be attached to
+   * `result.error.rpcCode`, for example an RPC failure with separate finalization.
+   */
+  rpcCode?: number;
   /** Whole milliseconds between observed phases, omitted when a pair is incomplete. */
   timingMs?: Readonly<{
     dispatchToResponse?: number;
@@ -126,6 +131,7 @@ export class TurnEvidence {
   private attempted = false;
   private submitted = false;
   private response: "response" | "rpc_error" | undefined;
+  private observedRpcCode?: number;
   private acknowledged = false;
   private requested = false;
   private cancelWritten = false;
@@ -152,26 +158,59 @@ export class TurnEvidence {
     this.identity.backendSessionId = event.sessionId;
     this.identity.rpcRequestId = event.requestId;
     if (event.type === "dispatching") {
-      if (this.respondedAt === undefined) {
-        this.dispatchedAt ??= performance.now();
-      }
-      this.attempted = true;
+      this.noteDispatching();
+      return;
     }
     if (event.type === "submitted") {
       this.submitted = true;
+      return;
     }
-    // A duplicate success can never overwrite a settled RPC error.
-    if (event.type === "response" && !this.response) {
-      this.response = event.errorCode === undefined ? "response" : "rpc_error";
-      this.respondedAt = performance.now();
+    if (event.type === "response") {
+      this.observeFirstResponse(event);
+    }
+  }
+
+  private noteDispatching(): void {
+    if (this.respondedAt === undefined) {
+      this.dispatchedAt ??= performance.now();
+    }
+    this.attempted = true;
+  }
+
+  private observeFirstResponse(event: Extract<AcpPromptDeliveryEvent, { type: "response" }>): void {
+    if (this.response) {
+      // A duplicate success can never overwrite a settled RPC error.
+      return;
+    }
+    this.response = event.errorCode === undefined ? "response" : "rpc_error";
+    this.respondedAt = performance.now();
+    if (event.errorCode !== undefined) {
+      this.observedRpcCode ??= event.errorCode;
+    }
+    if (event.stopReason === "cancelled") {
+      this.noteCancelAcknowledged();
     }
   }
 
   stopReason(value: string): void {
-    this.acknowledged = value === "cancelled";
-    if (this.acknowledged) {
-      this.cancelAcknowledgedAt ??= performance.now();
+    if (value === "cancelled") {
+      this.noteCancelAcknowledged();
     }
+  }
+
+  private noteCancelAcknowledged(): void {
+    if (this.acknowledged) {
+      return;
+    }
+    this.acknowledged = true;
+    this.cancelAcknowledgedAt ??= performance.now();
+  }
+
+  assuranceRpcCode(result?: { status: string; error?: { rpcCode?: number } }): number | undefined {
+    if (result?.status === "failed" && result.error?.rpcCode !== undefined) {
+      return undefined;
+    }
+    return this.observedRpcCode;
   }
 
   snapshot(result?: AcpRuntimeTurnResult): AcpTurnAssurance {
@@ -195,6 +234,10 @@ export class TurnEvidence {
       cleanup: this.cleanup,
       failureCategory: this.failureCategory(result),
       durationMs: Math.max(0, now - this.startedAt),
+      ...(() => {
+        const rpcCode = this.assuranceRpcCode(result);
+        return rpcCode === undefined ? {} : { rpcCode };
+      })(),
       ...(timingMs === undefined ? {} : { timingMs }),
     };
   }

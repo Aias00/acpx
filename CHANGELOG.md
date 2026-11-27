@@ -6,6 +6,10 @@ Repo: https://github.com/openclaw/acpx
 
 ## Unreleased
 
+### Changes
+
+- Runtime/embedding: preserve optional correlated `rpcCode`, `exitCode` and validated `signal` evidence on failed turns and setup rejections, bridge wire-observed RPC codes through `assurance.rpcCode` when needed, and measure cancellation acknowledgement at the matching prompt RPC response before late update drain.
+
 ## 0.23.0 - 2026-11-26
 
 **Highlights:** Guard prompts against replaced sessions, improve cancellation and session recovery, preserve tool results and process failures, and clarify CLI and flow diagnostics.

@@ -306,6 +306,7 @@ export class SafeTurnObserver {
         source: "acp_peer",
         delivery: event.errorCode === undefined ? "finished" : "failed",
         transport: event.errorCode === undefined ? "response" : "rpc_error",
+        ...(event.stopReason === "cancelled" ? { cancelAcknowledged: true } : {}),
       });
     }
   }
@@ -368,7 +369,9 @@ export class SafeTurnObserver {
       turnStatus: receipt.turnStatus,
       failureCategory: receipt.failureCategory,
       durationMs: receipt.durationMs,
-      ...(receipt.timingMs === undefined ? {} : { timingMs: Object.freeze({ ...receipt.timingMs }) }),
+      ...(receipt.timingMs === undefined
+        ? {}
+        : { timingMs: Object.freeze({ ...receipt.timingMs }) }),
       backendOutcome: "unknown",
       businessValidation: "unknown",
       cancelRequested: receipt.cancellation.requested,

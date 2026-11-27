@@ -345,6 +345,12 @@ export type AcpRuntimeTurnResultError = {
   code?: string;
   detailCode?: string;
   retryable?: boolean;
+  /** Wire-observed JSON-RPC error code when correlated with this failure. */
+  rpcCode?: number;
+  /** Observed child exit code when correlated with this failure, not post-cleanup retirement. */
+  exitCode?: number;
+  /** Validated termination signal name when correlated with this failure. */
+  signal?: NodeJS.Signals;
 };
 
 /** Client turn/finalization outcome; completion does not certify native or business success. */

@@ -86,6 +86,7 @@ function prompt(message: Message) {
     case "hold":
     case "cancel-ack":
     case "cancel-ignored":
+    case "cancel-late-updates":
       hold(message);
       break;
     default:
@@ -135,10 +136,18 @@ try {
         prompt(message);
         break;
       case "session/cancel":
-        if (scenario === "cancel-ack" && pending) {
+        if ((scenario === "cancel-ack" || scenario === "cancel-late-updates") && pending) {
           finish(pending, "cancelled");
           pending = undefined;
           clearInterval(timer);
+          if (scenario === "cancel-late-updates") {
+            for (let i = 0; i < 20; i++) {
+              update({
+                sessionUpdate: "agent_message_chunk",
+                content: { type: "text", text: `late-${i}` },
+              });
+            }
+          }
         }
         break;
       default:

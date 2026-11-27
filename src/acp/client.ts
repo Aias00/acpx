@@ -283,6 +283,14 @@ function toReconnectedSessionResult(
   };
 }
 
+function promptResponseStopReason(message: AnyMessage): string | undefined {
+  if (!("result" in message) || !message.result || typeof message.result !== "object") {
+    return undefined;
+  }
+  const stopReason = (message.result as { stopReason?: unknown }).stopReason;
+  return typeof stopReason === "string" ? stopReason : undefined;
+}
+
 type AgentDisconnectReason = "process_exit" | "process_close" | "pipe_close" | "connection_close";
 
 type PendingConnectionRequest = {
@@ -1458,18 +1466,33 @@ export class AcpClient {
   }
 
   private observePromptResponse(message: AnyMessage): void {
-    if (!("id" in message) || "method" in message) {
+    const active = this.activePromptOwnerForResponse(message);
+    if (!active) {
       return;
     }
-    const active = this.pendingPromptOwners.find((owner) => owner.requestId === message.id);
-    if (active) {
-      this.observePromptDelivery(active, {
-        type: "response",
-        requestId: message.id,
-        sessionId: active.sessionId,
-        ...("error" in message ? { errorCode: message.error.code } : {}),
-      });
+    this.deliverPromptResponse(active, message);
+  }
+
+  private activePromptOwnerForResponse(message: AnyMessage): ActivePromptState | undefined {
+    if (!("id" in message) || "method" in message) {
+      return undefined;
     }
+    return this.pendingPromptOwners.find((owner) => owner.requestId === message.id);
+  }
+
+  private deliverPromptResponse(
+    active: ActivePromptState,
+    message: AnyMessage & { id: JsonRpcId },
+  ): void {
+    const stopReason = promptResponseStopReason(message);
+    const errorCode = "error" in message ? message.error.code : undefined;
+    this.observePromptDelivery(active, {
+      type: "response",
+      requestId: message.id,
+      sessionId: active.sessionId,
+      ...(errorCode === undefined ? {} : { errorCode }),
+      ...(stopReason === undefined ? {} : { stopReason }),
+    });
   }
 
   private clearActivePrompt(active: ActivePromptState): void {

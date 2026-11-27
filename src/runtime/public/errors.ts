@@ -13,12 +13,26 @@ export type AcpRuntimeErrorCode = (typeof ACP_ERROR_CODES)[number];
 export class AcpRuntimeError extends Error {
   readonly code: AcpRuntimeErrorCode;
   override readonly cause?: unknown;
+  detailCode?: string;
+  rpcCode?: number;
+  exitCode?: number;
+  signal?: NodeJS.Signals;
 
-  constructor(code: AcpRuntimeErrorCode, message: string, options?: { cause?: unknown }) {
+  constructor(
+    code: AcpRuntimeErrorCode,
+    message: string,
+    options?: { cause?: unknown } & Partial<
+      Pick<AcpRuntimeError, "detailCode" | "rpcCode" | "exitCode" | "signal">
+    >,
+  ) {
     super(message);
     this.name = "AcpRuntimeError";
     this.code = code;
     this.cause = options?.cause;
+    this.detailCode = options?.detailCode;
+    this.rpcCode = options?.rpcCode;
+    this.exitCode = options?.exitCode;
+    this.signal = options?.signal;
   }
 }
 

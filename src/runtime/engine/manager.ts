@@ -4,7 +4,6 @@ import { isDeepStrictEqual } from "node:util";
 import type { SessionNotification, SetSessionConfigOptionResponse } from "@agentclientprotocol/sdk";
 import { normalizeAgentCommandInput } from "../../acp/client-process.js";
 import { AcpClient } from "../../acp/client.js";
-import { normalizeOutputError } from "../../acp/error-normalization.js";
 import { extractAcpError, isAcpResourceNotFoundError } from "../../acp/error-shapes.js";
 import { resolveRequestedConfigOption, resolveRequestedModelId } from "../../acp/model-support.js";
 import {
@@ -45,6 +44,10 @@ import type {
 } from "../public/contract.js";
 import { AcpRuntimeError } from "../public/errors.js";
 import { runtimeEventFromMessage } from "../public/events.js";
+import {
+  buildRuntimeTurnResultError,
+  enrichRuntimeSetupError,
+} from "../public/failure-evidence.js";
 import { probeRuntime, type RuntimeHealthReport } from "../public/probe.js";
 import { RuntimeTurnAssurance, boundedCancel } from "../turn-assurance.js";
 import { withConnectedSession } from "./connected-session.js";
@@ -167,10 +170,10 @@ async function startRuntimeClient(
     }
     // Name only the executable: configured arguments can carry credentials.
     const executable = path.basename(agent.agentArgv?.[0] ?? agent.agentCommand.split(/\s+/)[0]);
-    throw new AcpRuntimeError(
+    throw enrichRuntimeSetupError(
       "ACP_SESSION_INIT_FAILED",
       `ACP agent ${executable} did not complete ACP initialization within ${timeoutMs}ms. Check that the configured command starts an ACP server.`,
-      { cause: error },
+      error,
     );
   }
 }
@@ -283,10 +286,10 @@ async function withSessionSetupTimeout<T>(
     if (!(error instanceof TimeoutError)) {
       throw error;
     }
-    throw new AcpRuntimeError(
+    throw enrichRuntimeSetupError(
       "ACP_SESSION_INIT_FAILED",
       `ACP ${method} did not complete within ${timeoutMs}ms. Retry session setup and check that the configured ACP agent is responding.`,
-      { cause: error },
+      error,
     );
   }
 }
@@ -1825,15 +1828,9 @@ export class AcpRuntimeManager {
   private failRuntimeTurn(task: RuntimeTurnTask, error: unknown): AcpRuntimeTurnResult {
     task.promptStarted.reject(error);
     task.sessionReady.reject(error);
-    const normalized = normalizeOutputError(error, { origin: "runtime" });
     return {
       status: "failed",
-      error: {
-        message: normalized.message,
-        ...(normalized.code ? { code: normalized.code } : {}),
-        ...(normalized.detailCode ? { detailCode: normalized.detailCode } : {}),
-        ...(normalized.retryable !== undefined ? { retryable: normalized.retryable } : {}),
-      },
+      error: buildRuntimeTurnResultError(error),
     };
   }
 

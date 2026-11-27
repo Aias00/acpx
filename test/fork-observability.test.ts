@@ -52,7 +52,9 @@ test("fork assurance: late observations cannot supply phase starts at the same c
   evidence.stopReason("cancelled");
 
   assert.equal(Object.hasOwn(evidence.snapshot(), "timingMs"), false);
-  assert.deepEqual(evidence.snapshot({ status: "cancelled" }).timingMs, { responseToSettlement: 0 });
+  assert.deepEqual(evidence.snapshot({ status: "cancelled" }).timingMs, {
+    responseToSettlement: 0,
+  });
 });
 
 test("fork observation: opt-in is independent of assurance and rich events", async () => {
@@ -112,12 +114,13 @@ for (const profile of ["resumable", "basic"]) {
         assert.equal(end.backendOutcome, "unknown");
         assert.equal(end.businessValidation, "unknown");
         assert.ok(end.durationMs! >= 0);
-        assert.deepEqual(Object.keys(end.timingMs!).sort(), [
+        assert.ok(end.timingMs);
+        assert.deepEqual(Object.keys(end.timingMs).toSorted(), [
           "dispatchToResponse",
           "responseToSettlement",
         ]);
         assert.ok(
-          Object.values(end.timingMs!).every(
+          Object.values(end.timingMs).every(
             (ms) => typeof ms === "number" && Number.isSafeInteger(ms) && ms >= 0,
           ),
         );
